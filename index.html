@@ -10,23 +10,22 @@
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 20px; }
         @media (max-width: 900px) { .grid-container { grid-template-columns: 1fr; } }
         
-        /* 선생님 화면의 상단 회색 연동 상태 바 디자인 일치화 */
+        /* 상단 연동 상태 바 */
         .auth-status-bar { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
         .status-text { font-weight: 500; color: #334155; display: flex; align-items: center; gap: 8px; }
         
         .btn-settings { margin: 0; width: auto; font-size: 14px; padding: 6px 12px; background-color: #64748b !important; border: none; }
         .btn-settings.connected { background-color: #2563eb !important; }
 
-        /* 1단계 기출문제 캡처 상자 스타일 */
+        /* 1단계 박스 영역 (클릭 간섭 현상 완전 차단) */
         .paste-zone { border: 2px dashed #94a3b8; padding: 40px 20px; border-radius: 8px; text-align: center; background: #ffffff; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; }
         .paste-zone:hover { border-color: #2563eb; background: #f0f7ff; }
-        .paste-zone * { pointer-events: none; } /* 글자가 클릭을 방해하는 현상 원천 차단 */
+        .paste-zone * { pointer-events: none; } 
         
         .preview-img { max-width: 100%; max-height: 250px; display: none; margin: 15px auto 0; border-radius: 6px; border: 1px solid #cbd5e1; }
         .loading { display: none; color: #2563eb; font-weight: bold; margin-top: 10px; background: #eff6ff; padding: 10px; border-radius: 4px; }
         .result-box { background: #ffffff; border-left: 5px solid #10b981; padding: 15px; border-radius: 4px; white-space: pre-wrap; min-height: 200px; border: 1px solid #e2e8f0; }
 
-        /* 설정 모달 */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
         .modal-box { background: white; padding: 25px; border-radius: 8px; max-width: 450px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
     </style>
@@ -90,4 +89,53 @@
                 <label for="qCount">생성할 문항 수</label>
                 <input type="number" id="qCount" min="1" max="10" value="3" style="max-width:100px;">
                 
-                <button id="btnGenerate" style="width
+                <button id="btnGenerate" style="width:100%;">🚀 주관식 서답형 문제 생성 시작</button>
+                <div id="generateLoading" class="loading">⏳ 고품질 서답형 문제를 생성 중입니다...</div>
+                
+                <hr>
+                <h4>📋 출제된 서답형 시험지 결과</h4>
+                <div id="outputResult" class="result-box">문제 출제가 완료되면 정답 및 채점 기준이 출력됩니다.</div>
+            </article>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvGq_MefnWW91lVO94LcnkT1klLY_XtLs",
+            authDomain: "impact7-test.firebaseapp.com",
+            projectId: "impact7-test",
+            storageBucket: "impact7-test.firebasestorage.app",
+            messagingSenderId: "492840515825",
+            appId: "1:492840515825:web:58afa88d3c945383685150",
+            measurementId: "G-ENPZMXM2BC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        let GEMINI_API_KEY = "";
+        let targetBase64 = "";
+        let targetMimeType = "image/png";
+
+        // 🛡️ [클릭 마비 방어 레이어] 다른 스크립트에서 에러가 나도 클릭/붙여넣기는 무조건 동작하도록 로직 고립
+        (function initClickAndPaste() {
+            try {
+                const pasteZone = document.getElementById("pasteZone");
+                const hiddenFileInput = document.getElementById("hiddenFileInput");
+                const previewImg = document.getElementById("previewImg");
+                const pastePrompt = document.getElementById("pastePrompt");
+
+                if (pasteZone && hiddenFileInput) {
+                    pasteZone.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        hiddenFileInput.click();
+                    });
+
+                    hiddenFileInput.addEventListener("change", (e) => {
+                        if (e.target.files.length > 0) handleImage
