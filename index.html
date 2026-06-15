@@ -22,16 +22,16 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 캡처 화면에서 추출된 실제 프로젝트 환경 설정 데이터 대입 완료
-const firebaseConfig = {
-    apiKey: "AIzaSyD1QU_Ea7GZgxSSj70u7g_xwF5xsvV-K5I", // 👈 이 부분이 정확한지 확인!
-    authDomain: "impact7-test.firebaseapp.com",
-    projectId: "impact7-test",
-    storageBucket: "impact7-test.firebasestorage.app",
-    messagingSenderId: "492840515825",
-    appId: "1:492840515825:web:31a43452ff384c3f685150",
-    measurementId: "G-8J8R0F3CER"
-};
+        // 방금 새로 생성하신 깨끗한 세팅 데이터 반영 완료!
+        const firebaseConfig = {
+            apiKey: "AIzaSyD1QU_Ea7GZgxSSj70u7g_xwF5xsvV-K5I",
+            authDomain: "impact7-test.firebaseapp.com",
+            projectId: "impact7-test",
+            storageBucket: "impact7-test.firebasestorage.app",
+            messagingSenderId: "492840515825",
+            appId: "1:492840515825:web:b4d90e93458a5a65685150",
+            measurementId: "G-TGZD49DC6C"
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -40,17 +40,14 @@ const firebaseConfig = {
 
         let GEMINI_API_KEY = "";
 
-        // 로그인 핸들러
         document.getElementById('btnLogin').addEventListener('click', () => {
             signInWithPopup(auth, provider).catch(error => alert("로그인 실패: " + error.message));
         });
 
-        // 로그아웃 핸들러
         document.getElementById('btnLogout').addEventListener('click', () => {
             signOut(auth).then(() => location.reload());
         });
 
-        // 관리자 전용 마스터 키 DB 저장 로직
         document.getElementById('btnSaveKey').addEventListener('click', async () => {
             const keyInput = document.getElementById('apiKey').value.trim();
             if(!keyInput) return alert("Gemini API 키를 명확히 입력해 주세요.");
@@ -58,13 +55,12 @@ const firebaseConfig = {
             try {
                 await setDoc(doc(db, "secure_config", "gemini"), { apiKey: keyInput });
                 GEMINI_API_KEY = keyInput;
-                alert("마스터 API 키가 암호화되어 파이어베이스에 정상 등록되었습니다.");
+                alert("마스터 API 키가 파이어베이스 서버에 안전하게 등록되었습니다.");
             } catch (e) {
-                alert("저장 실패 (권한 없음): " + e.message);
+                alert("저장 실패: " + e.message);
             }
         });
 
-        // 유저 계정 상태 감지 인터셉터 및 보안 조건문
         onAuthStateChanged(auth, async (user) => {
             const mainContent = document.getElementById('mainContent');
             const adminSection = document.getElementById('adminSection');
@@ -76,9 +72,8 @@ const firebaseConfig = {
                 const email = user.email;
                 const domain = email.split('@')[1];
 
-                // [보안 필터 1] 일반 강사 및 내부 인원 이메일 도메인 체크 (@impact7.kr)
                 if (domain !== 'impact7.kr') {
-                    alert("인증 오류: @impact7.kr 계정 소유자만 이용할 수 있는 시스템입니다.");
+                    alert("인증 오류: @impact7.kr 계정 소유자만 이용할 수 있습니다.");
                     await signOut(auth);
                     return;
                 }
@@ -88,12 +83,10 @@ const firebaseConfig = {
                 userInfo.textContent = `👤 ${user.displayName} 선생님 (${email})`;
                 mainContent.style.display = "grid";
 
-                // [보안 필터 2] 최고 권한 관리자 식별 규칙 (roh@impact7.kr)
                 if (email === 'roh@impact7.kr') {
                     adminSection.style.display = "block";
                 }
 
-                // 권한이 확인된 유저에 한해 Firestore 백엔드로부터 API 마스터 키 동적 수신
                 try {
                     const docRef = await getDoc(doc(db, "secure_config", "gemini"));
                     if (docRef.exists()) {
@@ -102,10 +95,10 @@ const firebaseConfig = {
                             document.getElementById('apiKey').value = GEMINI_API_KEY;
                         }
                     } else if (email === 'roh@impact7.kr') {
-                        alert("현재 서버에 등록된 API 키가 없습니다. 관리자 패널에서 키를 최초 등록하세요.");
+                        alert("현재 데이터베이스에 등록된 Gemini API 키가 없습니다. 노란색 관리자 창에 키를 등록해 주세요.");
                     }
                 } catch (err) {
-                    console.error("보안 정책으로 인해 키를 불러오지 못했습니다.", err);
+                    console.error("키 로드 실패:", err);
                 }
             } else {
                 btnLogin.style.display = "block";
@@ -136,10 +129,10 @@ const firebaseConfig = {
     <section class="admin-section" id="adminSection">
         <label for="apiKey">👑 마스터 제어 시스템 (roh@impact7.kr 전용)</label>
         <div style="display:flex; gap:10px;">
-            <input type="password" id="apiKey" placeholder="Google AI Studio에서 발급받은 API 키를 입력하세요" style="margin:0;">
+            <input type="password" id="apiKey" placeholder="Google AI Studio에서 발급받은 Gemini API 키를 입력하세요" style="margin:0;">
             <button id="btnSaveKey" class="warning" style="margin:0; width:auto;">시스템 키 저장/갱신</button>
         </div>
-        <small>※ 이 패널은 일반 강사님들의 화면에는 CSS 및 JS 필터링으로 인해 절대 표시되지 않으며, 키 값 또한 소스 코드에 노출되지 않습니다.</small>
+        <small>※ 이 패널은 일반 강사님들의 화면에는 표시되지 않으며, 키 값 또한 코드에 노출되지 않습니다.</small>
     </section>
 
     <main class="grid-container main-content" id="mainContent">
@@ -181,7 +174,7 @@ const firebaseConfig = {
     <script>
         async function analyzePDF() {
             const apiKey = window.getGeminiKey();
-            if (!apiKey) return alert("API 키가 올바르지 않거나 서버로부터 로드되지 않았습니다.");
+            if (!apiKey) return alert("API 키가 설정되지 않았습니다. 관리자에게 문의하세요.");
 
             const fileInput = document.getElementById("pdfFile");
             if (fileInput.files.length === 0) return alert("기출문제 PDF를 선택해 주세요.");
@@ -192,7 +185,7 @@ const firebaseConfig = {
             try {
                 const base64Data = await window.toBase64(file);
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                const promptText = "너는 고등학교 영어 시험 출제 전문가야. 제공된 영어 시험지 PDF를 철저히 정독하여 서답형(주관식/서술형) 문제들의 출제 패턴 지침서를 한글로 작성해줘. 자주 나오는 유형(요약문 빈칸, 조건 배열 등)과 조건, 배점 경향성을 분석해줘.";
+                const promptText = "너는 고등학교 영어 시험 출제 전문가야. 제공된 영어 시험지 PDF를 철저히 정독하여 서답형(주관식/서술형) 문제들의 출제 패턴 지침서를 한글로 작성해줘. 자주 나오는 유형과 조건, 배점 경향성을 분석해줘.";
 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -213,7 +206,7 @@ const firebaseConfig = {
 
         async function generateQuestions() {
             const apiKey = window.getGeminiKey();
-            if (!apiKey) return alert("사용 권한이 만료되었거나 승인되지 않은 요청입니다.");
+            if (!apiKey) return alert("API 키 인증에 실패했습니다.");
 
             const guideline = document.getElementById("guidelineText").value.trim();
             const rangeText = document.getElementById("rangeText").value.trim();
@@ -225,40 +218,3 @@ const firebaseConfig = {
             try {
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 const promptText = `너는 대한민국 고등학교 영어 교사 및 출제 위원이다. 아래 [출제 지침]의 변별력 및 조건들을 100% 반영하여, [대상 지문] 내부에서만 정답을 도출할 수 있는 서답형(주관식/서술형) 고품질 문제 ${count}개를 신규 출제해라.
-
-[출제 지침]
-${guideline}
-
-[대상 지문]
-${rangeText}
-
-[출력 포맷]
-모든 문항은 아래 항목이 순서대로 가독성 있게 한글로 정렬되어야 한다.
-- 문항 번호 및 문제 내용 (세부 지시/제한 조건 명시)
-- 모범 답안
-- 출제 의도 및 오답 감점 세부 기준`;
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-                });
-
-                const result = await response.json();
-                document.getElementById("outputResult").textContent = result.candidates[0].content.parts[0].text;
-            } catch (error) {
-                alert("Gemini 생성 서버 통신 에러가 발생했습니다.");
-            } finally {
-                document.getElementById("generateLoading").style.display = "none";
-            }
-        }
-
-        window.toBase64 = file => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = error => reject(error);
-        });
-    </script>
-</body>
-</html>
