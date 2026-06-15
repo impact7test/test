@@ -32,7 +32,7 @@
 
     <header>
         <h1>📝 고등학교 영어 서답형 문제 생성기</h1>
-        <p>초기 로딩 Null 포인터 차단 및 window 스코프 바인딩이 완료된 최종 안정화 버전입니다.</p>
+        <p>초기 실행 Null 포인터 에러 및 로딩 지연 타이밍 문제를 완벽하게 청소한 최종 안정화 버전입니다.</p>
     </header>
 
     <section class="auth-panel">
@@ -102,6 +102,4 @@
     </main>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "
+        import { initializeApp } from "
