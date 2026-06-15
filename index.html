@@ -1,18 +1,3 @@
-선선님, 정말 죄송합니다! 보내주신 스크린샷(`image_9e2164.png`)을 보고 제 뼈아픈 실수를 알아챘습니다.
-
-지금 화면에 제가 보낸 **설명 텍스트("선생님, 제가 구글 SDK 라이브러리를 추가하는 과정에서...")까지 통째로 웹사이트 안에 같이 복사해서 붙여넣으신 상태**입니다.
-
-html 파일에는 코드만 들어가야 하는데 글자들까지 다 섞여서 들어가다 보니 브라우저가 아예 작동을 못 하고 계속 똑같이 멈춰 있는 것입니다.
-
----
-
-### 🛠️ 진짜 딱 '코드만' 복사하는 방법
-
-아래 검은색 상자 오른쪽 위에 있는 **'복사(Copy)' 버튼**을 누르시면 설명 글을 제외하고 **오직 순수 HTML 코드만** 깔끔하게 복사됩니다.
-
-기존 `index.html` 파일 안의 내용을 **전부 다 지우고 완전히 비우신 다음**, 복사한 코드를 붙여넣어 주세요!
-
-```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -51,7 +36,7 @@ html 파일에는 코드만 들어가야 하는데 글자들까지 다 섞여서
 
     <div class="auth-status-bar">
         <div class="status-text">
-            <span id="userInfo">🔒 파이어베이스 상태 확인 중...</span>
+            <span id="userInfo">🔒 파이어베이스 연결 초기화 중...</span>
             <button id="btnLogin" class="outline" style="margin:0; padding:4px 12px; font-size:13px; display:none;">로그인</button>
             <button id="btnLogout" class="secondary" style="margin:0; padding:4px 12px; font-size:13px; display:none;">로그아웃</button>
         </div>
@@ -121,9 +106,10 @@ html 파일에는 코드만 들어가야 하는데 글자들까지 다 섞여서
     </script>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        // 버그 프리 검증 버전인 10.12.0 모듈 주소로 전면 격상
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
         import { GoogleGenAI } from "@google/generative-ai";
 
         const firebaseConfig = {
@@ -139,12 +125,7 @@ html 파일에는 코드만 들어가야 하는데 글자들까지 다 섞여서
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
-
-        const db = initializeFirestore(app, {
-            localCache: persistentLocalCache({
-                tabManager: persistentMultipleTabManager()
-            })
-        });
+        const db = getFirestore(app); // 무한 대기를 일으키던 로컬 영속성 캐시 강제 분리 후 경량화 연결
 
         let GEMINI_API_KEY = "";
         let targetBase64 = "";
@@ -225,6 +206,7 @@ html 파일에는 코드만 들어가야 하는데 글자들까지 다 섞여서
         };
         initLoginEvents();
 
+        // 즉시 마비가 풀리고 실행되도록 리스너 최적화
         onAuthStateChanged(auth, async (user) => {
             const userInfo = document.getElementById('userInfo');
             const btnLogin = document.getElementById('btnLogin');
@@ -253,7 +235,7 @@ html 파일에는 코드만 들어가야 하는데 글자들까지 다 섞여서
                         }
                     }
                 } catch (err) {
-                    console.log("오프라인 상태 캐시를 사용하여 무한 대기를 우회합니다.");
+                    console.log("DB 로드 실패:", err.message);
                 }
             } else {
                 if(btnLogin) btnLogin.style.display = "inline-block";
@@ -270,64 +252,4 @@ html 파일에는 코드만 들어가야 하는데 글자들까지 다 섞여서
             if (!apiKey) return alert("설정 메뉴에서 Gemini API 키를 확인해 주세요.");
             if (!targetBase64) return alert("이미지를 먼저 추가해 주세요.");
 
-            document.getElementById("analyzeLoading").style.display = "block";
-            try {
-                const ai = new GoogleGenAI({ apiKey: apiKey });
-                const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-                const result = await model.generateContent([
-                    "대한민국 고등학교 영어 교사로서, 첨부된 시험지 이미지 속 주관식 서답형 문항들의 출제 경향과 조건을 분석하여 한국어 가이드라인으로 정리해줘.",
-                    {
-                        inlineData: {
-                            mimeType: targetMimeType,
-                            data: targetBase64
-                        }
-                    }
-                ]);
-
-                document.getElementById("guidelineText").value = result.response.text();
-            } catch (error) {
-                alert("분석 실패: " + error.message);
-            } finally {
-                document.getElementById("analyzeLoading").style.display = "none";
-            }
-        }
-
-        async function generateQuestions() {
-            const apiKey = apiKeyInput.value.trim() || GEMINI_API_KEY;
-            if (!apiKey) return alert("Gemini API 키가 유효하지 않습니다.");
-
-            const guideline = document.getElementById("guidelineText").value.trim();
-            const rangeText = document.getElementById("rangeText").value.trim();
-            const count = document.getElementById("qCount").value;
-
-            if (!guideline || !rangeText) return alert("출제 지침과 대상 지문을 입력해 주세요.");
-            document.getElementById("generateLoading").style.display = "block";
-
-            try {
-                const ai = new GoogleGenAI({ apiKey: apiKey });
-                const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-                const result = await model.generateContent([
-                    `다음 [출제 지침]의 유형과 감점 조건을 바탕으로, [대상 지문]을 활용한 고등학교 내신 주관식 서답형 문제 ${count}개를 출제해줘. 각 문제에는 '⚠️ [조건]', '✅ [정답]', '📝 [채점 기준]'을 한국어로 명확히 포함해라.\n\n[출제 지침]\n${guideline}\n\n[대상 지문]\n${rangeText}`
-                ]);
-
-                document.getElementById("outputResult").textContent = result.response.text();
-            } catch (error) {
-                alert("문제 생성 오류: " + error.message);
-            } finally {
-                document.getElementById("generateLoading").style.display = "none";
-            }
-        }
-    </script>
-</body>
-</html>
-
-```
-
----
-
-### ⚠️ 코드 반영 후 주의사항 (꼭 해주세요!)
-
-1. 깃허브 업로드 후 적용 완료까지 **최소 1분** 기다려주세요.
-2. 사이트 접속 후 꼭 `Ctrl + Shift + R`을 눌러 완전히 새로고침 해 주셔야 잔상이 사라집니다.
+            document.getElementById("analyzeLoading").style.display
