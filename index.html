@@ -21,10 +21,10 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
         .modal-box { background: white; padding: 25px; border-radius: 8px; max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         
-        /* 🚨 클릭 불통 현상을 해결하기 위해 포인터 이벤트를 조정한 구역 */
-        .paste-zone { border: 3px dashed #94a3b8; padding: 40px 20px; border-radius: 8px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; position: relative; }
+        /* 클릭 충돌을 원천 차단하는 스타일 */
+        .paste-zone { border: 3px dashed #94a3b8; padding: 40px 20px; border-radius: 8px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; position: relative; display: block !important; }
         .paste-zone:hover { border-color: #2563eb; background: #eff6ff; }
-        .paste-zone * { pointer-events: none; } /* 내부 글자가 클릭을 간섭하지 못하도록 차단 */
+        .paste-zone * { pointer-events: none; } /* 내부 글자가 클릭을 간섭하는 현상 전면 방지 */
         
         .preview-img { max-width: 100%; max-height: 300px; display: none; margin: 15px auto 0; border-radius: 6px; border: 1px solid #cbd5e1; }
         textarea { background-color: #ffffff; }
@@ -34,7 +34,7 @@
 
     <header>
         <h1>📝 고등학교 영어 서답형 문제 생성기</h1>
-        <p>클릭 잠금 오류 해결 및 Gemini 정식 규격이 적용된 최종 빌드입니다.</p>
+        <p>Null 포인터 마비 에러를 완벽하게 제어한 최종 스크립트 수정본입니다.</p>
     </header>
 
     <section class="auth-panel">
@@ -49,7 +49,7 @@
     <div id="configModal" class="modal-overlay">
         <div class="modal-box">
             <h4>🔑 마스터 API 제어 시스템</h4>
-            <p style="font-size:14px; color:#64748b;">구글 AI 스튜디오의 API 키를 정확하게 넣어주세요.</p>
+            <p style="font-size:14px; color:#64748b;">구글 AI 스튜디오의 API 키를 입력해 주세요.</p>
             <label for="apiKey">Gemini API Key</label>
             <input type="password" id="apiKey" placeholder="AIzaSy... 형태의 키를 입력하세요.">
             
@@ -71,7 +71,7 @@
                     <img id="previewImg" class="preview-img" alt="시험지 미리보기">
                 </div>
                 
-                <input type="file" id="hiddenFileInput" accept="image/*" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden;">
+                <input type="file" id="hiddenFileInput" accept="image/*" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; left: -9999px;">
 
                 <button id="btnAnalyze" class="contrast" style="width:100%;">📈 기출 패턴 분석 시작</button>
                 <div id="analyzeLoading" class="loading">⏳ Gemini 엔진이 이미지 구조를 정밀 판독하고 있습니다...</div>
@@ -90,3 +90,200 @@
             <article style="min-height: 100%;">
                 <h3>🎯 3단계: 서답형 문제 생성</h3>
                 <p>완성된 출제 지침과 입력된 지문을 바탕으로 신규 변별력 문항을 출제합니다.</p>
+                
+                <label for="qCount">생성할 서답형 문제 수</label>
+                <input type="number" id="qCount" min="1" max="10" value="3">
+                
+                <button id="btnGenerate" style="width:100%;">🚀 서답형 문제 및 답안 생성</button>
+                <div id="generateLoading" class="loading">⏳ 고품질 서답형 문제를 빌드하고 있습니다...</div>
+                
+                <hr>
+                <h4>📋 출제된 서답형 시험지 결과</h4>
+                <div id="outputResult" class="result-box">문제 출제가 완료되면 정답 및 채점 기준이 실시간 업데이트됩니다.</div>
+            </article>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvGq_MefnWW91lVO94LcnkT1klLY_XtLs",
+            authDomain: "impact7-test.firebaseapp.com",
+            projectId: "impact7-test",
+            storageBucket: "impact7-test.firebasestorage.app",
+            messagingSenderId: "492840515825",
+            appId: "1:492840515825:web:58afa88d3c945383685150",
+            measurementId: "G-ENPZMXM2BC"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        let GEMINI_API_KEY = "";
+        let targetBase64 = "";
+        let targetMimeType = "image/png";
+
+        // 🎯 브라우저가 화면의 모든 상자(DOM)를 100% 그린 뒤에 이벤트를 바인딩하도록 창 로딩 시점 고정
+        window.onload = function() {
+            const btnSettings = document.getElementById('btnSettings');
+            const configModal = document.getElementById('configModal');
+            const apiKeyInput = document.getElementById('apiKey');
+            const btnCloseModal = document.getElementById('btnCloseModal');
+            const btnSaveKey = document.getElementById('btnSaveKey');
+            const btnLogin = document.getElementById('btnLogin');
+            const btnLogout = document.getElementById('btnLogout');
+            
+            const pasteZone = document.getElementById("pasteZone");
+            const hiddenFileInput = document.getElementById("hiddenFileInput");
+            const previewImg = document.getElementById("previewImg");
+            const pastePrompt = document.getElementById("pastePrompt");
+            
+            if(document.getElementById("btnAnalyze")) document.getElementById("btnAnalyze").addEventListener("click", analyzeImage);
+            if(document.getElementById("btnGenerate")) document.getElementById("btnGenerate").addEventListener("click", generateQuestions);
+
+            if(btnSettings) btnSettings.addEventListener('click', () => configModal.style.display = 'flex');
+            if(btnCloseModal) btnCloseModal.addEventListener('click', () => configModal.style.display = 'none');
+            if(btnLogin) btnLogin.addEventListener('click', () => signInWithPopup(auth, provider).catch(err => alert("로그인 오류: " + err.message)));
+            if(btnLogout) btnLogout.addEventListener('click', () => signOut(auth));
+
+            if(btnSaveKey) {
+                btnSaveKey.addEventListener('click', async () => {
+                    const keyInput = apiKeyInput.value.trim();
+                    if(!keyInput) return alert("Gemini API 키를 입력해 주세요.");
+                    try {
+                        await setDoc(doc(db, "secure_config", "gemini"), { apiKey: keyInput });
+                        GEMINI_API_KEY = keyInput;
+                        btnSettings.className = "btn-settings blue";
+                        btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                        alert("API 마스터 키가 성공적으로 저장되었습니다.");
+                        configModal.style.display = 'none';
+                    } catch (e) {
+                        alert("DB 저장 실패: " + e.message);
+                    }
+                });
+            }
+
+            // 🎯 요소가 무조건 존재할 때만 클릭 명령을 넣도록 null 방어 레이어 작동
+            if (pasteZone && hiddenFileInput) {
+                pasteZone.onclick = function(e) {
+                    e.preventDefault();
+                    hiddenFileInput.click();
+                };
+                
+                hiddenFileInput.onchange = function(e) {
+                    if(e.target.files.length > 0) handleImageFile(e.target.files[0]);
+                };
+            }
+
+            document.addEventListener("paste", (e) => {
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                for (let item of items) {
+                    if (item.kind === 'file' && item.type.startsWith('image/')) {
+                        handleImageFile(item.getAsFile());
+                        break;
+                    }
+                }
+            });
+
+            function handleImageFile(file) {
+                targetMimeType = file.type;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    targetBase64 = e.target.result.split(',')[1];
+                    if (previewImg && pastePrompt) {
+                        previewImg.src = e.target.result;
+                        previewImg.style.display = "block";
+                        pastePrompt.innerHTML = `✅ <b>시험지 기출 이미지 로드 완료!</b>`;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+            const userInfo = document.getElementById('userInfo');
+            const btnLogin = document.getElementById('btnLogin');
+            const btnLogout = document.getElementById('btnLogout');
+            const btnSettings = document.getElementById('btnSettings');
+            const apiKeyInput = document.getElementById('apiKey');
+
+            if (user) {
+                const email = user.email;
+                const domain = email.split('@')[1];
+
+                if (domain !== 'impact7.kr') {
+                    alert("인증 실패: @impact7.kr 공식 도메인 계정만 접근할 수 있습니다.");
+                    await signOut(auth);
+                    return;
+                }
+
+                if(btnLogin) btnLogin.style.display = "none";
+                if(btnLogout) btnLogout.style.display = "inline-block";
+                if(userInfo) userInfo.textContent = `👤 ${user.displayName} 선생님`;
+
+                try {
+                    const docRef = await getDoc(doc(db, "secure_config", "gemini"));
+                    if (docRef.exists() && docRef.data().apiKey) {
+                        GEMINI_API_KEY = docRef.data().apiKey.trim();
+                        if(apiKeyInput) apiKeyInput.value = GEMINI_API_KEY;
+                        if(btnSettings) {
+                            btnSettings.className = "btn-settings blue";
+                            btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                        }
+                    }
+                } catch (err) {
+                    console.error("키 불러오기 실패:", err);
+                }
+            } else {
+                if(btnLogin) btnLogin.style.display = "inline-block";
+                if(btnLogout) btnLogout.style.display = "none";
+                if(userInfo) userInfo.textContent = "🔒 구글 계정 인증이 필요합니다.";
+                GEMINI_API_KEY = "";
+                if(btnSettings) {
+                    btnSettings.className = "btn-settings gray";
+                    btnSettings.textContent = "⚙️ 설정";
+                }
+            }
+        });
+
+        const getEffectiveKey = () => {
+            const inputField = document.getElementById('apiKey');
+            const inputKeyValue = inputField ? inputField.value.trim() : "";
+            return inputKeyValue || GEMINI_API_KEY;
+        };
+
+        async function analyzeImage() {
+            const apiKey = getEffectiveKey();
+            if (!apiKey) return alert("⚙️ 설정 메뉴에서 Gemini API 키를 입력해 주세요.");
+            if (!targetBase64) return alert("분석할 기출시험지 이미지를 먼저 선택하거나 붙여넣어 주세요.");
+
+            document.getElementById("analyzeLoading").style.display = "block";
+
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const promptText = "너는 대한민국 고등학교 영어 내신 출제 전문가야. 제공된 시험지 이미지에 포함된 주관식 서답형 문항들을 분석해서 출제 가이드라인을 한글로 깔끔하게 정리해줘.";
+
+                const requestBody = {
+                    contents: [{
+                        parts: [
+                            { text: promptText },
+                            { inlineData: { mimeType: targetMimeType, data: targetBase64 } }
+                        ]
+                    }]
+                };
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+                if (result.error) throw new Error(result.error.message);
+                
+                document.getElementById("guidelineText
