@@ -21,6 +21,11 @@
         
         .btn-settings { display: block; background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 14px; cursor: pointer; width: auto; margin: 0; }
         .btn-settings:hover { background: #0369a1; }
+
+        /* 📸 이미지 업로드/붙여넣기 구역 스타일 */
+        .paste-zone { border: 3px dashed #cbd5e1; padding: 30px 20px; border-radius: 8px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s ease; margin-bottom: 15px; }
+        .paste-zone:hover, .paste-zone.dragover { border-color: #3b82f6; background: #eff6ff; }
+        .preview-img { max-width: 100%; max-height: 250px; display: none; margin: 15px auto 0; border-radius: 4px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     </style>
 
     <script type="module">
@@ -58,16 +63,14 @@
             const keyInput = document.getElementById('apiKey').value.trim();
             if(!keyInput) return alert("Gemini API 키를 입력해 주세요.");
             
-            // 실시간 수동 반영 허용 (서버 에러 시에도 작동 보장)
             GEMINI_API_KEY = keyInput;
             window.manualKey = keyInput;
             
             try {
                 await setDoc(doc(db, "secure_config", "gemini"), { apiKey: keyInput });
-                alert("마스터 API 키가 웹앱에 반영되었으며 파이어베이스 서버 저장을 시도했습니다.");
+                alert("API 키가 반영 및 저장되었습니다.");
             } catch (e) {
-                console.error(e);
-                alert("서버 저장에는 실패했으나, 현재 브라우저 창 내에서는 키가 적용되었습니다. 분석을 진행해보세요!");
+                alert("서버 저장에 실패했으나 창 내에서는 키가 즉시 적용되었습니다. 진행하셔도 좋습니다!");
             }
         });
 
@@ -98,7 +101,7 @@
                         document.getElementById('apiKey').value = GEMINI_API_KEY;
                     }
                 } catch (err) {
-                    console.error("서버 키 로드 실패(권한 오류 우회 준비):", err);
+                    console.error("키 로드 실패:", err);
                 }
             } else {
                 btnLogin.style.display = "block";
@@ -109,10 +112,7 @@
             }
         });
 
-        // 전역에서 안전하게 키를 조회하는 마스터 함수
-        window.getGeminiKey = () => {
-            return window.manualKey || GEMINI_API_KEY || document.getElementById('apiKey').value.trim();
-        };
+        window.getGeminiKey = () => window.manualKey || GEMINI_API_KEY || document.getElementById('apiKey').value.trim();
     </script>
 </head>
 <body>
@@ -123,98 +123,4 @@
     </header>
 
     <section class="auth-section" id="authSection">
-        <span id="userInfo" class="user-info">보안 상태 검증 중...</span>
-        <button id="btnLogin" style="margin:0; width:auto; display:none;">구글 로그인</button>
-        <button id="btnToggleAdmin" class="btn-settings">⚙️ 설정 / 키 수동 입력</button>
-    </section>
-
-    <section class="admin-section" id="adminSection">
-        <label for="apiKey">🔑 Gemini API 설정 (서버 연결 실패 시 여기에 키를 붙여넣고 적용하세요)</label>
-        <div style="display:flex; gap:10px;">
-            <input type="password" id="apiKey" placeholder="AI Studio에서 발급받은 AIzaSy... 형태의 키를 입력" style="margin:0;">
-            <button id="btnSaveKey" class="warning" style="margin:0; width:auto;">시스템 키 적용/저장</button>
-        </div>
-    </section>
-
-    <main class="grid-container main-content" id="mainContent">
-        <div>
-            <article>
-                <h3>🔍 1. 기출 유형 분석</h3>
-                <p>학교 기출문제 PDF 파일을 선택하면 Gemini가 서답형 출제 패턴을 분석합니다.</p>
-                <input type="file" id="pdfFile" accept="application/pdf">
-                <button onclick="window.analyzePDF()" class="contrast">📈 기출 패턴 분석 시작</button>
-                <div id="analyzeLoading" class="loading">⏳ Gemini가 기출 시험지를 대조 분석하고 있습니다...</div>
-                
-                <label for="guidelineText" style="margin-top:15px;">📋 분석된 출제 지침 (직접 수정 가능)</label>
-                <textarea id="guidelineText" rows="6" placeholder="기출문제 분석 결과가 여기에 표시되거나, 직접 지침을 작성하셔도 됩니다."></textarea>
-            </article>
-
-            <article>
-                <h3>📖 2. 시험범위 지문 입력</h3>
-                <textarea id="rangeText" rows="6" placeholder="이번 시험 범위인 외부지문, 수능특강, 교과서 본문을 복사하여 붙여넣으세요."></textarea>
-            </article>
-        </div>
-
-        <div>
-            <article style="min-height: 100%;">
-                <h3>🎯 3. 서답형 문제 생성</h3>
-                <p>앞서 완성된 출제 지침과 입력된 지문을 바탕으로 시험 문제를 출제합니다.</p>
-                <label for="qCount">생성할 서답형 문제 수</label>
-                <input type="number" id="qCount" min="1" max="10" value="3">
-                
-                <button onclick="window.generateQuestions()">🚀 서답형 문제 및 답안 생성</button>
-                <div id="generateLoading" class="loading">⏳ 지정된 학원 지침 데이터를 기반으로 신규 문항을 출제 중입니다...</div>
-                
-                <hr>
-                <h4>📋 출제된 서답형 시험지 결과</h4>
-                <div id="outputResult" class="result-box">문제가 생성되면 여기에 표시됩니다. 본문을 드래그해서 복사해 사용하세요.</div>
-            </article>
-        </div>
-    </main>
-
-    <script>
-        window.toBase64 = file => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = error => reject(error);
-        });
-
-        window.analyzePDF = async function() {
-            const apiKey = window.getGeminiKey();
-            if (!apiKey) return alert("API 키가 확인되지 않습니다. 상단 [설정] 버튼을 눌러 Gemini API 키를 직접 입력하고 [적용]을 눌러주세요!");
-
-            const fileInput = document.getElementById("pdfFile");
-            if (fileInput.files.length === 0) return alert("기출문제 PDF를 선택해 주세요.");
-
-            const file = fileInput.files[0];
-            document.getElementById("analyzeLoading").style.display = "block";
-
-            try {
-                const base64Data = await window.toBase64(file);
-                // 🛠️ [정답 조치] v1 주소와 정식 명칭 규격(gemini-1.5-flash)의 정석 조합으로 수정하여 404를 완벽 차단합니다.
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                const promptText = "너는 고등학교 영어 시험 출제 전문가야. 제공된 영어 시험지 PDF를 철저히 정독하여 서답형(주관식/서술형) 문제들의 출제 패턴 지침서를 한글로 작성해줘. 자주 나오는 유형과 조건, 배점 경향성을 분석해줘.";
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ inlineData: { mimeType: "application/pdf", data: base64Data } }, { text: promptText }] }]
-                    })
-                });
-
-                const result = await response.json();
-                if (result.error) throw new Error(result.error.message);
-                
-                document.getElementById("guidelineText").value = result.candidates[0].content.parts[0].text;
-            } catch (error) {
-                alert("오류가 발생했습니다: " + error.message);
-            } finally {
-                document.getElementById("analyzeLoading").style.display = "none";
-            }
-        };
-
-        window.generateQuestions = async function() {
-            const apiKey = window.getGeminiKey();
-            if (!apiKey)
+        <span id="userInfo" class="user-info">보
