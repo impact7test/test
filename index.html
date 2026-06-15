@@ -32,12 +32,12 @@
 
     <header>
         <h1>📝 고등학교 영어 서답형 문제 생성기</h1>
-        <p>초기 실행 Null 포인터 에러 및 로딩 지연 타이밍 문제를 완벽하게 청소한 최종 안정화 버전입니다.</p>
+        <p>확장 프로그램 차단 예외처리 및 로딩 안정성이 극대화된 최종 버전입니다.</p>
     </header>
 
     <section class="auth-panel">
         <div>
-            <span id="userInfo" style="font-weight:bold; color:#1e293b; margin-right:15px;">연동 상태 확인 중...</span>
+            <span id="userInfo" style="font-weight:bold; color:#1e293b; margin-right:15px;">🔒 파이어베이스 서버 연결 중...</span>
             <button id="btnLogin" role="button" class="outline" style="margin:0; width:auto; display:none;">구글 로그인</button>
             <button id="btnLogout" role="button" class="secondary" style="margin:0; width:auto; display:none;">로그아웃</button>
         </div>
@@ -102,4 +102,232 @@
     </main>
 
     <script type="module">
-        import { initializeApp } from "
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvGq_MefnWW91lVO94LcnkT1klLY_XtLs",
+            authDomain: "impact7-test.firebaseapp.com",
+            projectId: "impact7-test",
+            storageBucket: "impact7-test.firebasestorage.app",
+            messagingSenderId: "492840515825",
+            appId: "1:492840515825:web:58afa88d3c945383685150",
+            measurementId: "G-ENPZMXM2BC"
+        };
+
+        let app, auth, db, provider;
+        let GEMINI_API_KEY = "";
+        let targetBase64 = "";
+        let targetMimeType = "image/png";
+
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            provider = new GoogleAuthProvider();
+        } catch (e) {
+            console.error("Firebase 초기화 에러 (광고차단앱 확인 필요):", e);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const btnSettings = document.getElementById('btnSettings');
+            const configModal = document.getElementById('configModal');
+            const apiKeyInput = document.getElementById('apiKey');
+            const btnCloseModal = document.getElementById('btnCloseModal');
+            const btnSaveKey = document.getElementById('btnSaveKey');
+            const btnLogin = document.getElementById('btnLogin');
+            const btnLogout = document.getElementById('btnLogout');
+            const pasteZone = document.getElementById("pasteZone");
+            const previewImg = document.getElementById("previewImg");
+            const pastePrompt = document.getElementById("pastePrompt");
+            const hiddenFileInput = document.getElementById("hiddenFileInput");
+
+            if(!auth) {
+                const userInfo = document.getElementById('userInfo');
+                if(userInfo) userInfo.innerHTML = "<span style='color:#ef4444;'>⚠️ 광고 차단 확장 프로그램을 해제 후 새로고침 해주세요.</span>";
+                return;
+            }
+
+            if(btnSettings && configModal) btnSettings.addEventListener('click', () => configModal.style.display = 'flex');
+            if(btnCloseModal && configModal) btnCloseModal.addEventListener('click', () => configModal.style.display = 'none');
+            if(btnLogin) btnLogin.addEventListener('click', () => signInWithPopup(auth, provider).catch(err => alert("로그인 오류: " + err.message)));
+            if(btnLogout) btnLogout.addEventListener('click', () => signOut(auth));
+
+            if(btnSaveKey && apiKeyInput && configModal) {
+                btnSaveKey.addEventListener('click', async () => {
+                    const keyInput = apiKeyInput.value.trim();
+                    if(!keyInput) return alert("Gemini API 키를 올바르게 입력해 주세요.");
+                    try {
+                        await setDoc(doc(db, "secure_config", "gemini"), { apiKey: keyInput });
+                        GEMINI_API_KEY = keyInput;
+                        if(btnSettings) {
+                            btnSettings.className = "btn-settings blue";
+                            btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                        }
+                        alert("API 마스터 키가 안전하게 영구 저장되었습니다.");
+                        configModal.style.display = 'none';
+                    } catch (e) {
+                        alert("DB 저장 실패: " + e.message);
+                    }
+                });
+            }
+
+            if(pasteZone && hiddenFileInput) {
+                pasteZone.addEventListener("click", () => hiddenFileInput.click());
+                hiddenFileInput.addEventListener("change", (e) => {
+                    if(e.target.files.length > 0) handleImageFile(e.target.files[0]);
+                });
+            }
+
+            document.addEventListener("paste", (e) => {
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                for (let item of items) {
+                    if (item.kind === 'file' && item.type.startsWith('image/')) {
+                        handleImageFile(item.getAsFile());
+                        break;
+                    }
+                }
+            });
+
+            function handleImageFile(file) {
+                targetMimeType = file.type;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    targetBase64 = e.target.result.split(',')[1];
+                    if(previewImg) {
+                        previewImg.src = e.target.result;
+                        previewImg.style.display = "block";
+                    }
+                    if(pastePrompt) pastePrompt.innerHTML = `✅ <b>시험지 스크린샷 배치 완료</b>`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        if (auth) {
+            onAuthStateChanged(auth, async (user) => {
+                const userInfo = document.getElementById('userInfo');
+                const btnLogin = document.getElementById('btnLogin');
+                const btnLogout = document.getElementById('btnLogout');
+                const btnSettings = document.getElementById('btnSettings');
+                const apiKeyInput = document.getElementById('apiKey');
+
+                if (user) {
+                    const email = user.email;
+                    const domain = email.split('@')[1];
+
+                    if (domain !== 'impact7.kr') {
+                        alert("인증 실패: @impact7.kr 공식 계정만 사용할 수 있습니다.");
+                        await signOut(auth);
+                        return;
+                    }
+
+                    if(btnLogin) btnLogin.style.display = "none";
+                    if(btnLogout) btnLogout.style.display = "inline-block";
+                    if(userInfo) userInfo.textContent = `👤 ${user.displayName} 선생님`;
+
+                    try {
+                        const docRef = await getDoc(doc(db, "secure_config", "gemini"));
+                        if (docRef.exists() && docRef.data().apiKey) {
+                            GEMINI_API_KEY = docRef.data().apiKey;
+                            if(apiKeyInput) apiKeyInput.value = GEMINI_API_KEY;
+                            if(btnSettings) {
+                                btnSettings.className = "btn-settings blue";
+                                btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                            }
+                        } else {
+                            if(btnSettings) {
+                                btnSettings.className = "btn-settings gray";
+                                btnSettings.textContent = "⚙️ 설정 (키 미등록)";
+                            }
+                        }
+                    } catch (err) {
+                        if(btnSettings) btnSettings.className = "btn-settings gray";
+                    }
+                } else {
+                    if(btnLogin) btnLogin.style.display = "inline-block";
+                    if(btnLogout) btnLogout.style.display = "none";
+                    if(userInfo) userInfo.textContent = "🔒 구글 계정 인증이 필요합니다.";
+                    GEMINI_API_KEY = "";
+                    if(btnSettings) {
+                        btnSettings.className = "btn-settings gray";
+                        btnSettings.textContent = "⚙️ 설정";
+                    }
+                }
+            });
+        }
+
+        const getGeminiKey = () => GEMINI_API_KEY || (document.getElementById('apiKey') ? document.getElementById('apiKey').value.trim() : "");
+
+        window.analyzeImage = async function() {
+            const apiKey = getGeminiKey();
+            if (!apiKey) return alert("설정 창을 열어 API 마스터 키를 확인해 주세요.");
+            if (!targetBase64) return alert("분석할 기출문제 이미지를 먼저 붙여넣어 주세요.");
+
+            document.getElementById("analyzeLoading").style.display = "block";
+
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const promptText = "너는 대한민국 고등학교 영어 내신 출제 전문가야. 제공된 시험지 이미지에 포함된 주관식 서답형 문항들의 유형(빈칸 영작, 조건 제시 어순 배열, 문맥상 어색한 어법 수정 등)을 정밀 분석해서 핵심 출제 가이드라인을 한글로 정리해줘.";
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inlineData: { mimeType: targetMimeType, data: targetBase64 } }
+                            ]
+                        }]
+                    })
+                });
+
+                const result = await response.json();
+                if (result.error) throw new Error(result.error.message);
+                
+                document.getElementById("guidelineText").value = result.candidates[0].content.parts[0].text;
+            } catch (error) {
+                alert("기출 판독 실패: " + error.message);
+            } finally {
+                document.getElementById("analyzeLoading").style.display = "none";
+            }
+        };
+
+        window.generateQuestions = async function() {
+            const apiKey = getGeminiKey();
+            if (!apiKey) return alert("연동된 API 마스터 키가 존재하지 않습니다.");
+
+            const guideline = document.getElementById("guidelineText").value.trim();
+            const rangeText = document.getElementById("rangeText").value.trim();
+            const count = document.getElementById("qCount").value;
+
+            if (!guideline || !rangeText) return alert("1단계 가이드라인과 2단계 시험 범위 본문이 모두 입력되어야 합니다.");
+            document.getElementById("generateLoading").style.display = "block";
+
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const promptText = `고등학교 영어 교사로서 [출제 지침]의 서답형 문항 유형과 조건을 그대로 구현하여, [대상 지문]을 변형한 새로운 주관식 문제 ${count}개를 출제해라. 각 문항별로 정교한 조건 문구, 모범 답안, 부분 점수 기준표를 한글로 상세히 포함시켜라.\n\n[출제 지침]\n${guideline}\n\n[대상 지문]\n${rangeText}`;
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptText }] }]
+                    })
+                });
+
+                const result = await response.json();
+                if (result.error) throw new Error(result.error.message);
+                
+                document.getElementById("outputResult").textContent = result.candidates[0].content.parts[0].text;
+            } catch (error) {
+                alert("문항 생성 실패: " + error.message);
+            } finally {
+                document.getElementById("generateLoading").style.display = "none";
+            }
+        };
+    </script>
+</body>
+</html>
