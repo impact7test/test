@@ -22,15 +22,15 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 방금 새로 생성하신 깨끗한 세팅 데이터 반영 완료!
+        // 💡 파이어베이스 설정 화면과 100% 일치하도록 수정 완료된 올바른 값입니다.
         const firebaseConfig = {
             apiKey: "AIzaSyD1QU_Ea7GZgxSSj70u7g_xwF5xsvV-K5I",
             authDomain: "impact7-test.firebaseapp.com",
             projectId: "impact7-test",
             storageBucket: "impact7-test.firebasestorage.app",
             messagingSenderId: "492840515825",
-            appId: "1:492840515825:web:b4d90e93458a5a65685150",
-            measurementId: "G-TGZD49DC6C"
+            appId: "1:492840515825:web:58afa88d3c945383685150",
+            measurementId: "G-ENPZMXM2BC"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -184,37 +184,4 @@
 
             try {
                 const base64Data = await window.toBase64(file);
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                const promptText = "너는 고등학교 영어 시험 출제 전문가야. 제공된 영어 시험지 PDF를 철저히 정독하여 서답형(주관식/서술형) 문제들의 출제 패턴 지침서를 한글로 작성해줘. 자주 나오는 유형과 조건, 배점 경향성을 분석해줘.";
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ inlineData: { mimeType: "application/pdf", data: base64Data } }, { text: promptText }] }]
-                    })
-                });
-
-                const result = await response.json();
-                document.getElementById("guidelineText").value = result.candidates[0].content.parts[0].text;
-            } catch (error) {
-                alert("PDF 데이터를 분석하는 도중 오류가 발생했습니다.");
-            } finally {
-                document.getElementById("analyzeLoading").style.display = "none";
-            }
-        }
-
-        async function generateQuestions() {
-            const apiKey = window.getGeminiKey();
-            if (!apiKey) return alert("API 키 인증에 실패했습니다.");
-
-            const guideline = document.getElementById("guidelineText").value.trim();
-            const rangeText = document.getElementById("rangeText").value.trim();
-            const count = document.getElementById("qCount").value;
-
-            if (!guideline || !rangeText) return alert("출제 지침 내용과 시험범위 지문이 모두 입력되어야 합니다.");
-            document.getElementById("generateLoading").style.display = "block";
-
-            try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                const promptText = `너는 대한민국 고등학교 영어 교사 및 출제 위원이다. 아래 [출제 지침]의 변별력 및 조건들을 100% 반영하여, [대상 지문] 내부에서만 정답을 도출할 수 있는 서답형(주관식/서술형) 고품질 문제 ${count}개를 신규 출제해라.
+                const url = `
