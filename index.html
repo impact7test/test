@@ -21,7 +21,8 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
         .modal-box { background: white; padding: 25px; border-radius: 8px; max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         
-        .paste-zone { border: 3px dashed #94a3b8; padding: 40px 20px; border-radius: 8px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; }
+        /* 🚨 클릭 마비를 방지하기 위해 영역 인식을 극대화한 스타일 */
+        .paste-zone { border: 3px dashed #94a3b8; padding: 40px 20px; border-radius: 8px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; display: block !important; }
         .paste-zone:hover { border-color: #2563eb; background: #eff6ff; }
         .preview-img { max-width: 100%; max-height: 300px; display: none; margin: 15px auto 0; border-radius: 6px; border: 1px solid #cbd5e1; }
         
@@ -32,7 +33,7 @@
 
     <header>
         <h1>📝 고등학교 영어 서답형 문제 생성기</h1>
-        <p>구글 정식 API 규격 주소 맵핑이 완료된 최종 빌드입니다.</p>
+        <p>클릭 및 붙여넣기 오류를 해결하고 구글 API 규격을 정형화한 최종 수정판입니다.</p>
     </header>
 
     <section class="auth-panel">
@@ -47,7 +48,7 @@
     <div id="configModal" class="modal-overlay">
         <div class="modal-box">
             <h4>🔑 마스터 API 제어 시스템</h4>
-            <p style="font-size:14px; color:#64748b;">구글 AI 스튜디오에서 발급받은 API 키를 정확하게 넣어주세요.</p>
+            <p style="font-size:14px; color:#64748b;">구글 AI 스튜디오에서 발급받은 API 키를 입력해 주세요.</p>
             <label for="apiKey">Gemini API Key</label>
             <input type="password" id="apiKey" placeholder="AIzaSy... 형태의 API 키를 입력하세요.">
             
@@ -62,13 +63,13 @@
         <div>
             <article>
                 <h3>🔍 1단계: 기출 유형 분석</h3>
-                <p>학교 시험지 기출문제를 <b>캡처(Ctrl+Shift+S)</b>한 후 아래 영역에 <b>Ctrl + V</b>로 붙여넣으세요.</p>
+                <p>아래 상자를 <b>클릭하여 파일을 선택</b>하거나, 화면을 클릭한 상태에서 기출문제를 <b>Ctrl + V</b>로 붙여넣으세요.</p>
                 
                 <div id="pasteZone" class="paste-zone">
-                    <span id="pastePrompt">📋 여기를 1번 클릭한 후 <b>Ctrl + V</b>를 눌러 이미지를 붙여넣으세요.</span>
+                    <span id="pastePrompt">📋 <b>여기 영역을 클릭</b>하여 시험지 이미지를 선택하거나 <b>Ctrl + V</b>를 누르세요.</span>
                     <img id="previewImg" class="preview-img" alt="시험지 미리보기">
                 </div>
-                <input type="file" id="hiddenFileInput" accept="image/*" style="display: none;">
+                <input type="file" id="hiddenFileInput" accept="image/*" style="display: none !important;">
 
                 <button id="btnAnalyze" class="contrast" style="width:100%;">📈 기출 패턴 분석 시작</button>
                 <div id="analyzeLoading" class="loading">⏳ Gemini 엔진이 이미지 구조를 정밀 판독하고 있습니다...</div>
@@ -125,6 +126,7 @@
         let targetBase64 = "";
         let targetMimeType = "image/png";
 
+        // 🛠️ DOM 로드가 끝난 후 엘리먼트를 확실하게 연결하는 구조
         document.addEventListener("DOMContentLoaded", () => {
             const btnSettings = document.getElementById('btnSettings');
             const configModal = document.getElementById('configModal');
@@ -132,54 +134,4 @@
             const btnCloseModal = document.getElementById('btnCloseModal');
             const btnSaveKey = document.getElementById('btnSaveKey');
             const btnLogin = document.getElementById('btnLogin');
-            const btnLogout = document.getElementById('btnLogout');
-            const pasteZone = document.getElementById("pasteZone");
-            const previewImg = document.getElementById("previewImg");
-            const pastePrompt = document.getElementById("pastePrompt");
-            const hiddenFileInput = document.getElementById("hiddenFileInput");
-            
-            document.getElementById("btnAnalyze").addEventListener("click", analyzeImage);
-            document.getElementById("btnGenerate").addEventListener("click", generateQuestions);
-
-            btnSettings.addEventListener('click', () => configModal.style.display = 'flex');
-            btnCloseModal.addEventListener('click', () => configModal.style.display = 'none');
-            btnLogin.addEventListener('click', () => signInWithPopup(auth, provider).catch(err => alert("로그인 오류: " + err.message)));
-            btnLogout.addEventListener('click', () => signOut(auth));
-
-            btnSaveKey.addEventListener('click', async () => {
-                const keyInput = apiKeyInput.value.trim();
-                if(!keyInput) return alert("Gemini API 키를 입력해 주세요.");
-                try {
-                    await setDoc(doc(db, "secure_config", "gemini"), { apiKey: keyInput });
-                    GEMINI_API_KEY = keyInput;
-                    btnSettings.className = "btn-settings blue";
-                    btnSettings.textContent = "⚙️ 설정 (연결됨)";
-                    alert("API 마스터 키가 성공적으로 저장되었습니다.");
-                    configModal.style.display = 'none';
-                } catch (e) {
-                    alert("DB 저장 실패: " + e.message);
-                }
-            });
-
-            pasteZone.addEventListener("click", () => hiddenFileInput.click());
-            hiddenFileInput.addEventListener("change", (e) => {
-                if(e.target.files.length > 0) handleImageFile(e.target.files[0]);
-            });
-
-            document.addEventListener("paste", (e) => {
-                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                for (let item of items) {
-                    if (item.kind === 'file' && item.type.startsWith('image/')) {
-                        handleImageFile(item.getAsFile());
-                        break;
-                    }
-                }
-            });
-
-            function handleImageFile(file) {
-                targetMimeType = file.type;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    targetBase64 = e.target.result.split(',')[1];
-                    previewImg.src = e.target.result;
-                    previewImg.style.display = "
+            const btnLogout
