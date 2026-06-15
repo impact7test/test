@@ -14,8 +14,8 @@
         
         .auth-panel { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* ⚙️ 설정 버튼 색상 동적 변경을 위한 스타일 */
-        .btn-settings { margin: 0; width: auto; font-size: 14px; padding: 8px 16px; border: none; }
+        /* ⚙️ 설정 버튼 디자인 */
+        .btn-settings { margin: 0; width: auto; font-size: 14px; padding: 8px 16px; border: none; transition: all 0.2s; }
         .btn-settings.gray { background-color: #64748b !important; color: white !important; }
         .btn-settings.blue { background-color: #2563eb !important; color: white !important; }
 
@@ -28,7 +28,6 @@
         .paste-zone:hover, .paste-zone.dragover { border-color: #2563eb; background: #eff6ff; }
         .preview-img { max-width: 100%; max-height: 350px; display: none; margin: 15px auto 0; border-radius: 6px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         
-        .flex-row { display: flex; gap: 10px; align-items: center; }
         textarea { background-color: #ffffff; }
     </style>
 
@@ -54,97 +53,81 @@
 
         let GEMINI_API_KEY = "";
 
-        // UI 제어용 바인딩
-        const btnSettings = document.getElementById('btnSettings');
-        const configModal = document.getElementById('configModal');
-        const apiKeyInput = document.getElementById('apiKey');
+        // 🚀 DOM이 완전히 로드된 후 이벤트를 바인딩하여 Null 에러를 원천 차단합니다.
+        document.addEventListener("DOMContentLoaded", () => {
+            const btnSettings = document.getElementById('btnSettings');
+            const configModal = document.getElementById('configModal');
+            const apiKeyInput = document.getElementById('apiKey');
 
-        // 모달 열고 닫기
-        btnSettings.addEventListener('click', () => configModal.style.display = 'flex');
-        document.getElementById('btnCloseModal').addEventListener('click', () => configModal.style.display = 'none');
+            // 모달 열고 닫기
+            btnSettings.addEventListener('click', () => configModal.style.display = 'flex');
+            document.getElementById('btnCloseModal').addEventListener('click', () => configModal.style.display = 'none');
 
-        // 로그인 / 로그아웃
-        document.getElementById('btnLogin').addEventListener('click', () => {
-            signInWithPopup(auth, provider).catch(error => alert("로그인 실패: " + error.message));
-        });
-        document.getElementById('btnLogout').addEventListener('click', () => {
-            signOut(auth);
-        });
+            // 로그인 / 로그아웃
+            document.getElementById('btnLogin').addEventListener('click', () => {
+                signInWithPopup(auth, provider).catch(error => alert("로그인 실패: " + error.message));
+            });
+            document.getElementById('btnLogout').addEventListener('click', () => {
+                signOut(auth);
+            });
 
-        // 👑 관리자가 API 키를 파이어베이스 데이터베이스에 영구 저장하는 핵심 로직
-        document.getElementById('btnSaveKey').addEventListener('click', async () => {
-            const keyInput = apiKeyInput.value.trim();
-            if(!keyInput) return alert("Gemini API 키를 공백 없이 정확히 입력해 주세요.");
-            
-            try {
-                // 파이어베이스 Firestore에 암묵적 갱신 영구 기록
-                await setDoc(doc(db, "secure_config", "gemini"), { apiKey: keyInput });
-                GEMINI_API_KEY = keyInput;
+            // 관리자 API 키 영구 저장
+            document.getElementById('btnSaveKey').addEventListener('click', async () => {
+                const keyInput = apiKeyInput.value.trim();
+                if(!keyInput) return alert("Gemini API 키를 입력해 주세요.");
                 
-                // 🎨 저장 완료 시 파란색 버튼으로 변환
-                btnSettings.className = "btn-settings blue";
-                btnSettings.textContent = "⚙️ 설정 (연결됨)";
-                
-                alert("API 키가 파이어베이스 데이터베이스에 영구 보관되었습니다. 이제 모든 강사님이 재입력 없이 자동 연동됩니다.");
-                configModal.style.display = 'none';
-            } catch (e) {
-                alert("데이터베이스 저장 실패 (보안 규칙을 확인하세요): " + e.message);
-            }
+                try {
+                    await setDoc(doc(db, "secure_config", "gemini"), { apiKey: keyInput });
+                    GEMINI_API_KEY = keyInput;
+                    
+                    btnSettings.className = "btn-settings blue";
+                    btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                    
+                    alert("API 키가 파이어베이스에 영구 저장되었습니다. 모든 강사님에게 자동 연동됩니다.");
+                    configModal.style.display = 'none';
+                } catch (e) {
+                    alert("데이터베이스 저장 실패: " + e.message);
+                }
+            });
         });
 
-        // 구글 로그인 인증 상태 감지기
+        // 인증 상태 변경 감지
         onAuthStateChanged(auth, async (user) => {
             const userInfo = document.getElementById('userInfo');
             const btnLogin = document.getElementById('btnLogin');
             const btnLogout = document.getElementById('btnLogout');
+            const btnSettings = document.getElementById('btnSettings');
+            const apiKeyInput = document.getElementById('apiKey');
 
             if (user) {
                 const email = user.email;
                 const domain = email.split('@')[1];
 
                 if (domain !== 'impact7.kr') {
-                    alert("인증 오류: @impact7.kr 학원 공식 계정만 사용하실 수 있습니다.");
+                    alert("인증 오류: @impact7.kr 공식 계정만 접근 가능합니다.");
                     await signOut(auth);
                     return;
                 }
 
-                btnLogin.style.display = "none";
-                btnLogout.style.display = "inline-block";
-                userInfo.textContent = `👤 ${user.displayName} 선생님 (${email})`;
+                if(btnLogin) btnLogin.style.display = "none";
+                if(btnLogout) btnLogout.style.display = "inline-block";
+                if(userInfo) userInfo.textContent = `👤 ${user.displayName} 선생님`;
 
-                // 🔄 로그인 성공 즉시 파이어베이스 저장소에서 키 불러오기
                 try {
                     const docRef = await getDoc(doc(db, "secure_config", "gemini"));
                     if (docRef.exists() && docRef.data().apiKey) {
                         GEMINI_API_KEY = docRef.data().apiKey;
-                        apiKeyInput.value = GEMINI_API_KEY;
+                        if(apiKeyInput) apiKeyInput.value = GEMINI_API_KEY;
                         
-                        // 🎨 키가 들어있으므로 파란색 처리
-                        btnSettings.className = "btn-settings blue";
-                        btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                        if(btnSettings) {
+                            btnSettings.className = "btn-settings blue";
+                            btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                        }
                     } else {
-                        // 🎨 키가 없으면 회색 처리
-                        btnSettings.className = "btn-settings gray";
-                        btnSettings.textContent = "⚙️ 설정 (키 미등록)";
+                        if(btnSettings) {
+                            btnSettings.className = "btn-settings gray";
+                            btnSettings.textContent = "⚙️ 설정 (키 미등록)";
+                        }
                     }
                 } catch (err) {
-                    console.log("자동 로드 차단 - 관리자 확인 필요");
-                    btnSettings.className = "btn-settings gray";
-                }
-            } else {
-                btnLogin.style.display = "inline-block";
-                btnLogout.style.display = "none";
-                userInfo.textContent = "🔒 학원 구글 계정으로 인증해 주세요.";
-                GEMINI_API_KEY = "";
-                btnSettings.className = "btn-settings gray";
-                btnSettings.textContent = "⚙️ 설정";
-            }
-        });
-
-        window.getGeminiKey = () => GEMINI_API_KEY || apiKeyInput.value.trim();
-    </script>
-</head>
-<body>
-
-    <header>
-        <h1>📝 고등학교 영어 서답형 문제 생성기
+                    if(btnSettings) btn
