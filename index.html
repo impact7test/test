@@ -14,41 +14,94 @@
         
         .auth-panel { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* ⚙️ 설정 버튼 디자인 */
         .btn-settings { margin: 0; width: auto; font-size: 14px; padding: 8px 16px; border: none; transition: all 0.2s; }
         .btn-settings.gray { background-color: #64748b !important; color: white !important; }
         .btn-settings.blue { background-color: #2563eb !important; color: white !important; }
 
-        /* 🔒 API 마스터 키 등록 팝업 모달 */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
         .modal-box { background: white; padding: 25px; border-radius: 8px; max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         
-        /* 📸 이미지 붙여넣기 구역 */
         .paste-zone { border: 3px dashed #94a3b8; padding: 50px 20px; border-radius: 8px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; }
         .paste-zone:hover, .paste-zone.dragover { border-color: #2563eb; background: #eff6ff; }
         .preview-img { max-width: 100%; max-height: 350px; display: none; margin: 15px auto 0; border-radius: 6px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         
         textarea { background-color: #ffffff; }
     </style>
+</head>
+<body>
+
+    <header>
+        <h1>📝 고등학교 영어 서답형 문제 생성기</h1>
+        <p>초기 로딩 Null 포인터 차단 및 window 스코프 바인딩이 완료된 최종 안정화 버전입니다.</p>
+    </header>
+
+    <section class="auth-panel">
+        <div>
+            <span id="userInfo" style="font-weight:bold; color:#1e293b; margin-right:15px;">연동 상태 확인 중...</span>
+            <button id="btnLogin" role="button" class="outline" style="margin:0; width:auto; display:none;">구글 로그인</button>
+            <button id="btnLogout" role="button" class="secondary" style="margin:0; width:auto; display:none;">로그아웃</button>
+        </div>
+        <button id="btnSettings" class="btn-settings gray">⚙️ 설정</button>
+    </section>
+
+    <div id="configModal" class="modal-overlay">
+        <div class="modal-box">
+            <h4>🔑 마스터 API 제어 시스템</h4>
+            <p style="font-size:14px; color:#64748b;">이곳에 등록하시면 다른 강사님들은 별도 설정 없이 바로 문제 출제가 가능합니다.</p>
+            <label for="apiKey">Gemini API Key</label>
+            <input type="password" id="apiKey" placeholder="AIzaSy... 형태의 API 키를 넣어주세요.">
+            
+            <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
+                <button id="btnCloseModal" class="secondary" style="margin:0; width:auto;">닫기</button>
+                <button id="btnSaveKey" style="margin:0; width:auto;">데이터베이스 영구 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="grid-container">
+        <div>
+            <article>
+                <h3>🔍 1단계: 기출문제 화면 캡처 후 붙여넣기</h3>
+                <p>아래 영역을 클릭한 상태에서, 시험지 스크린샷 화면을 <b>Ctrl + V</b>로 붙여넣으세요.</p>
+                
+                <div id="pasteZone" class="paste-zone">
+                    <span id="pastePrompt">📋 이곳을 클릭하고 <b>Ctrl + V</b>를 누르세요.</span>
+                    <img id="previewImg" class="preview-img" alt="기출 시험지 미리보기">
+                </div>
+                <input type="file" id="hiddenFileInput" accept="image/*" style="display: none;">
+
+                <button onclick="window.analyzeImage()" class="contrast" style="width:100%;">📈 기출 패턴 이미지 판독 시작</button>
+                <div id="analyzeLoading" class="loading">⏳ Gemini 가 이미지 내부 영어 지문과 서답형 기준을 연산 중입니다...</div>
+                
+                <label for="guidelineText" style="margin-top:20px; font-weight:bold;">📋 AI 분석 완료된 출제 지침 가이드라인</label>
+                <textarea id="guidelineText" rows="6" placeholder="기출문제 이미지 판독 데이터가 여기에 기록됩니다."></textarea>
+            </article>
+
+            <article>
+                <h3>📖 2단계: 신규 시험범위 본문 텍스트</h3>
+                <textarea id="rangeText" rows="8" placeholder="이번에 변형 문제를 출제할 신규 부교재 또는 교과서 지문을 붙여넣어 주세요."></textarea>
+            </article>
+        </div>
+
+        <div>
+            <article style="min-height: 100%;">
+                <h3>🎯 3단계: 맞춤형 변별력 문항 생성</h3>
+                <p>가이드라인 기준과 신규 지문을 매칭하여 타겟팅 문항을 빌드합니다.</p>
+                
+                <label for="qCount">희망 출제 문항 수</label>
+                <input type="number" id="qCount" min="1" max="10" value="3">
+                
+                <button onclick="window.generateQuestions()" style="width:100%;">🚀 변별력 서답형 문제 및 모범답안 생성</button>
+                <div id="generateLoading" class="loading">⏳ 고품질 서답형 문제를 빌드하고 있습니다...</div>
+                
+                <hr>
+                <h4>📋 최종 출제 완료된 서답형 시험지</h4>
+                <div id="outputResult" class="result-box">문제 출제가 완료되면 정답 및 채점 기준이 실시간 업데이트됩니다.</div>
+            </article>
+        </div>
+    </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAvGq_MefnWW91lVO94LcnkT1klLY_XtLs",
-            authDomain: "impact7-test.firebaseapp.com",
-            projectId: "impact7-test",
-            storageBucket: "impact7-test.firebasestorage.app",
-            messagingSenderId: "492840515825",
-            appId: "1:492840515825:web:58afa88d3c945383685150",
-            measurementId: "G-ENPZMXM2BC"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const provider = new GoogleAuthProvider();
-
-        let GEM
+        import { getFirestore, doc, setDoc, getDoc } from "
