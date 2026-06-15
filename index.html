@@ -10,14 +10,12 @@
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 20px; }
         @media (max-width: 900px) { .grid-container { grid-template-columns: 1fr; } }
         
-        /* 상단 연동 상태 바 */
         .auth-status-bar { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
         .status-text { font-weight: 500; color: #334155; display: flex; align-items: center; gap: 8px; }
         
-        .btn-settings { margin: 0; width: auto; font-size: 14px; padding: 6px 12px; background-color: #64748b !important; border: none; }
+        .btn-settings { margin: 0; width: auto; font-size: 14px; padding: 6px 12px; background-color: #64748b !important; border: none; color: white !important; }
         .btn-settings.connected { background-color: #2563eb !important; }
 
-        /* 1단계 박스 영역 (클릭 간섭 현상 완전 차단) */
         .paste-zone { border: 2px dashed #94a3b8; padding: 40px 20px; border-radius: 8px; text-align: center; background: #ffffff; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; }
         .paste-zone:hover { border-color: #2563eb; background: #f0f7ff; }
         .paste-zone * { pointer-events: none; } 
@@ -123,19 +121,181 @@
         let targetBase64 = "";
         let targetMimeType = "image/png";
 
-        // 🛡️ [클릭 마비 방어 레이어] 다른 스크립트에서 에러가 나도 클릭/붙여넣기는 무조건 동작하도록 로직 고립
-        (function initClickAndPaste() {
+        const pasteZone = document.getElementById("pasteZone");
+        const hiddenFileInput = document.getElementById("hiddenFileInput");
+        const previewImg = document.getElementById("previewImg");
+        const pastePrompt = document.getElementById("pastePrompt");
+
+        if (pasteZone && hiddenFileInput) {
+            pasteZone.addEventListener("click", (e) => {
+                e.stopPropagation();
+                hiddenFileInput.click();
+            });
+
+            hiddenFileInput.addEventListener("change", (e) => {
+                if (e.target.files.length > 0) handleImage(e.target.files[0]);
+            });
+        }
+
+        document.addEventListener("paste", (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let item of items) {
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    handleImage(item.getAsFile());
+                    break;
+                }
+            }
+        });
+
+        function handleImage(file) {
+            targetMimeType = file.type;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                targetBase64 = e.target.result.split(',')[1];
+                if (previewImg && pastePrompt) {
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = "block";
+                    pastePrompt.innerHTML = `✅ <b>시험지 기출 이미지 로드 완료!</b>`;
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        const btnSettings = document.getElementById('btnSettings');
+        const configModal = document.getElementById('configModal');
+        const btnCloseModal = document.getElementById('btnCloseModal');
+        const btnSaveKey = document.getElementById('btnSaveKey');
+        const apiKeyInput = document.getElementById('apiKey');
+
+        if(btnSettings) btnSettings.addEventListener('click', () => configModal.style.display = 'flex');
+        if(btnCloseModal) btnCloseModal.style.display = 'none';
+
+        if(btnSaveKey) {
+            btnSaveKey.addEventListener('click', async () => {
+                const keyInput = apiKeyInput.value.trim();
+                if(!keyInput) return alert("Gemini API 키를 입력해 주세요.");
+                try {
+                    GEMINI_API_KEY = keyInput;
+                    if(btnSettings) {
+                        btnSettings.classList.add("connected");
+                        btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                    }
+                    await setDoc(doc(db, "secure_config", "gemini"), { apiKey: keyInput });
+                    alert("API 키가 브라우저 세션 및 DB에 저장되었습니다.");
+                    configModal.style.display = 'none';
+                } catch (e) {
+                    alert("API 키가 임시 적용되었습니다. (DB 권한 제외): " + e.message);
+                    configModal.style.display = 'none';
+                }
+            });
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            const userInfo = document.getElementById('userInfo');
+            const btnLogin = document.getElementById('btnLogin');
+            const btnLogout = document.getElementById('btnLogout');
+
+            if (user) {
+                const email = user.email || "";
+                if (!email.endsWith('@impact7.kr')) {
+                    alert("인증 실패: @impact7.kr 계정만 허용됩니다.");
+                    await signOut(auth);
+                    return;
+                }
+
+                // DB 조회 결과와 무관하게 화면 전환을 먼저 보장하여 멈춤 현상 해제
+                if(btnLogin) btnLogin.style.display = "none";
+                if(btnLogout) btnLogout.style.display = "inline-block";
+                if(userInfo) userInfo.textContent = `👤 ${user.displayName || '선생님'} 로그인됨`;
+
+                try {
+                    const docRef = await getDoc(doc(db, "secure_config", "gemini"));
+                    if (docRef.exists() && docRef.data().apiKey) {
+                        GEMINI_API_KEY = docRef.data().apiKey.trim();
+                        if(apiKeyInput) apiKeyInput.value = GEMINI_API_KEY;
+                        if(btnSettings) {
+                            btnSettings.classList.add("connected");
+                            btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                        }
+                    }
+                } catch (err) {
+                    console.log("DB 차단 우회: 우측 상단 설정을 클릭하여 수동 입력이 가능합니다.");
+                }
+            } else {
+                if(btnLogin) btnLogin.style.display = "inline-block";
+                if(btnLogout) btnLogout.style.display = "none";
+                if(userInfo) userInfo.textContent = "🔒 구글 로그인 연동이 필요합니다.";
+            }
+        });
+
+        if(document.getElementById("btnAnalyze")) document.getElementById("btnAnalyze").addEventListener("click", analyzeImage);
+        if(document.getElementById("btnGenerate")) document.getElementById("btnGenerate").addEventListener("click", generateQuestions);
+
+        async function analyzeImage() {
+            const apiKey = apiKeyInput.value.trim() || GEMINI_API_KEY;
+            if (!apiKey) return alert("설정 메뉴에서 Gemini API 키를 입력하세요.");
+            if (!targetBase64) return alert("이미지를 먼저 추가해 주세요.");
+
+            document.getElementById("analyzeLoading").style.display = "block";
             try {
-                const pasteZone = document.getElementById("pasteZone");
-                const hiddenFileInput = document.getElementById("hiddenFileInput");
-                const previewImg = document.getElementById("previewImg");
-                const pastePrompt = document.getElementById("pastePrompt");
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: "대한민국 고등학교 영어 교사로서, 첨부된 시험지 이미지 속 주관식 서답형 문항들의 출제 경향과 조건을 분석하여 한국어 가이드라인으로 정리해줘." },
+                                { inlineData: { mimeType: targetMimeType, data: targetBase64 } }
+                            ]
+                        }]
+                    })
+                });
 
-                if (pasteZone && hiddenFileInput) {
-                    pasteZone.addEventListener("click", (e) => {
-                        e.stopPropagation();
-                        hiddenFileInput.click();
-                    });
+                const result = await response.json();
+                if (result.error) throw new Error(result.error.message);
+                document.getElementById("guidelineText").value = result.candidates[0].content.parts[0].text;
+            } catch (error) {
+                alert("분석 실패: " + error.message);
+            } finally {
+                document.getElementById("analyzeLoading").style.display = "none";
+            }
+        }
 
-                    hiddenFileInput.addEventListener("change", (e) => {
-                        if (e.target.files.length > 0) handleImage
+        async function generateQuestions() {
+            const apiKey = apiKeyInput.value.trim() || GEMINI_API_KEY;
+            if (!apiKey) return alert("Gemini API 키가 입력되지 않았습니다.");
+
+            const guideline = document.getElementById("guidelineText").value.trim();
+            const rangeText = document.getElementById("rangeText").value.trim();
+            const count = document.getElementById("qCount").value;
+
+            if (!guideline || !rangeText) return alert("출제 지침과 대상 지문을 입력해 주세요.");
+            document.getElementById("generateLoading").style.display = "block";
+
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: `다음 [출제 지침]의 유형과 감점 조건을 바탕으로, [대상 지문]을 활용한 고등학교 내신 주관식 서답형 문제 ${count}개를 출제해줘. 각 문제에는 '⚠️ [조건]', '✅ [정답]', '📝 [채점 기준]'을 한국어로 명확히 포함해라.\n\n[출제 지침]\n${guideline}\n\n[대상 지문]\n${rangeText}`
+                            }]
+                        }]
+                    })
+                });
+
+                const result = await response.json();
+                if (result.error) throw new Error(result.error.message);
+                document.getElementById("outputResult").textContent = result.candidates[0].content.parts[0].text;
+            } catch (error) {
+                alert("문제 생성 오류: " + error.message);
+            } finally {
+                document.getElementById("generateLoading").style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
