@@ -15,6 +15,10 @@
         .admin-section { display: none; background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ffeba2; }
         .main-content { display: none; }
         .user-info { font-weight: bold; color: #0369a1; }
+        
+        /* 설정 버튼 디자인 정의 */
+        .btn-settings { display: none; background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 14px; cursor: pointer; width: auto; margin: 0; }
+        .btn-settings:hover { background: #0369a1; }
     </style>
 
     <script type="module">
@@ -22,9 +26,8 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 파이어베이스 진짜 세팅 데이터와 100% 일치합니다.
         const firebaseConfig = {
-                apiKey: "AIzaSyAvGq_MefnWW91lVO94LcnkT1klLY_XtLs",
+            apiKey: "AIzaSyAvGq_MefnWW91lVO94LcnkT1klLY_XtLs",
             authDomain: "impact7-test.firebaseapp.com",
             projectId: "impact7-test",
             storageBucket: "impact7-test.firebasestorage.app",
@@ -44,8 +47,14 @@
             signInWithPopup(auth, provider).catch(error => alert("로그인 실패: " + error.message));
         });
 
-        document.getElementById('btnLogout').addEventListener('click', () => {
-            signOut(auth).then(() => location.reload());
+        // ⚙️ 설정 버튼 클릭 시 노란색 마스터 패널을 보이기/숨기기(Toggle) 처리하는 기능
+        document.getElementById('btnToggleAdmin').addEventListener('click', () => {
+            const adminSection = document.getElementById('adminSection');
+            if (adminSection.style.display === "none" || adminSection.style.display === "") {
+                adminSection.style.display = "block";
+            } else {
+                adminSection.style.display = "none";
+            }
         });
 
         document.getElementById('btnSaveKey').addEventListener('click', async () => {
@@ -66,7 +75,7 @@
             const adminSection = document.getElementById('adminSection');
             const userInfo = document.getElementById('userInfo');
             const btnLogin = document.getElementById('btnLogin');
-            const btnLogout = document.getElementById('btnLogout');
+            const btnToggleAdmin = document.getElementById('btnToggleAdmin');
 
             if (user) {
                 const email = user.email;
@@ -79,13 +88,16 @@
                 }
 
                 btnLogin.style.display = "none";
-                btnLogout.style.display = "block";
                 userInfo.textContent = `👤 ${user.displayName} 선생님 (${email})`;
                 mainContent.style.display = "grid";
 
+                // 마스터 권한 관리자인 경우에만 설정 버튼 활성화 (패널은 기본 숨김)
                 if (email === 'roh@impact7.kr') {
-                    adminSection.style.display = "block";
+                    btnToggleAdmin.style.display = "block";
+                } else {
+                    btnToggleAdmin.style.display = "none";
                 }
+                adminSection.style.display = "none"; 
 
                 try {
                     const docRef = await getDoc(doc(db, "secure_config", "gemini"));
@@ -95,14 +107,14 @@
                             document.getElementById('apiKey').value = GEMINI_API_KEY;
                         }
                     } else if (email === 'roh@impact7.kr') {
-                        alert("현재 데이터베이스에 등록된 Gemini API 키가 없습니다. 노란색 관리자 창에 키를 등록해 주세요.");
+                        alert("현재 데이터베이스에 등록된 Gemini API 키가 없습니다. 설정 버튼을 눌러 키를 등록해 주세요.");
                     }
                 } catch (err) {
                     console.error("키 로드 실패:", err);
                 }
             } else {
                 btnLogin.style.display = "block";
-                btnLogout.style.display = "none";
+                btnToggleAdmin.style.display = "none";
                 userInfo.textContent = "학원 공용 구글 계정(@impact7.kr)으로 인증을 완료해 주세요.";
                 mainContent.style.display = "none";
                 adminSection.style.display = "none";
@@ -123,7 +135,7 @@
     <section class="auth-section" id="authSection">
         <span id="userInfo" class="user-info">보안 상태 검증 중...</span>
         <button id="btnLogin" style="margin:0; width:auto; display:none;">구글 로그인</button>
-        <button id="btnLogout" class="secondary" style="margin:0; width:auto; display:none;">로그아웃</button>
+        <button id="btnToggleAdmin" class="btn-settings">⚙️ 설정</button>
     </section>
 
     <section class="admin-section" id="adminSection">
@@ -172,7 +184,6 @@
     </main>
 
     <script>
-        // 파일 변환 보조 함수 추가로 안정성 강화
         window.toBase64 = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
