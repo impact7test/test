@@ -207,7 +207,8 @@
 
             try {
                 const base64Data = await window.toBase64(file);
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                // 🛠️ v1beta 구버전 주소를 최신 정식 버전 주소(v1)로 전면 수정했습니다.
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 const promptText = "너는 고등학교 영어 시험 출제 전문가야. 제공된 영어 시험지 PDF를 철저히 정독하여 서답형(주관식/서술형) 문제들의 출제 패턴 지침서를 한글로 작성해줘. 자주 나오는 유형과 조건, 배점 경향성을 분석해줘.";
 
                 const response = await fetch(url, {
@@ -219,9 +220,14 @@
                 });
 
                 const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error.message);
+                }
+                
                 document.getElementById("guidelineText").value = result.candidates[0].content.parts[0].text;
             } catch (error) {
-                alert("PDF 데이터를 분석하는 도중 오류가 발생했습니다.");
+                alert("PDF 데이터를 분석하는 도중 오류가 발생했습니다: " + error.message);
             } finally {
                 document.getElementById("analyzeLoading").style.display = "none";
             }
@@ -239,7 +245,8 @@
             document.getElementById("generateLoading").style.display = "block";
 
             try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                // 🛠️ v1beta 구버전 주소를 최신 정식 버전 주소(v1)로 전면 수정했습니다.
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 const promptText = `너는 대한민국 고등학교 영어 교사 및 출제 위원이다. 아래 [출제 지침]의 변별력 및 조건들을 100% 반영하여, [대상 지문] 내부에서만 정답을 도출할 수 있는 서답형(주관식/서술형) 고품질 문제 ${count}개를 신규 출제해라.\n\n[출제 지침]\n${guideline}\n\n[대상 지문]\n${rangeText}`;
 
                 const response = await fetch(url, {
@@ -251,9 +258,14 @@
                 });
 
                 const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error.message);
+                }
+                
                 document.getElementById("outputResult").textContent = result.candidates[0].content.parts[0].text;
             } catch (error) {
-                alert("문제 생성 중 오류가 발생했습니다.");
+                alert("문제 생성 중 오류가 발생했습니다: " + error.message);
             } finally {
                 document.getElementById("generateLoading").style.display = "none";
             }
