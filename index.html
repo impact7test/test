@@ -21,11 +21,12 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
         .modal-box { background: white; padding: 25px; border-radius: 8px; max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         
-        /* 🚨 클릭 마비를 방지하기 위해 영역 인식을 극대화한 스타일 */
-        .paste-zone { border: 3px dashed #94a3b8; padding: 40px 20px; border-radius: 8px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; display: block !important; }
+        /* 🚨 클릭 불통 현상을 해결하기 위해 포인터 이벤트를 조정한 구역 */
+        .paste-zone { border: 3px dashed #94a3b8; padding: 40px 20px; border-radius: 8px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; position: relative; }
         .paste-zone:hover { border-color: #2563eb; background: #eff6ff; }
-        .preview-img { max-width: 100%; max-height: 300px; display: none; margin: 15px auto 0; border-radius: 6px; border: 1px solid #cbd5e1; }
+        .paste-zone * { pointer-events: none; } /* 내부 글자가 클릭을 간섭하지 못하도록 차단 */
         
+        .preview-img { max-width: 100%; max-height: 300px; display: none; margin: 15px auto 0; border-radius: 6px; border: 1px solid #cbd5e1; }
         textarea { background-color: #ffffff; }
     </style>
 </head>
@@ -33,7 +34,7 @@
 
     <header>
         <h1>📝 고등학교 영어 서답형 문제 생성기</h1>
-        <p>클릭 및 붙여넣기 오류를 해결하고 구글 API 규격을 정형화한 최종 수정판입니다.</p>
+        <p>클릭 잠금 오류 해결 및 Gemini 정식 규격이 적용된 최종 빌드입니다.</p>
     </header>
 
     <section class="auth-panel">
@@ -48,9 +49,9 @@
     <div id="configModal" class="modal-overlay">
         <div class="modal-box">
             <h4>🔑 마스터 API 제어 시스템</h4>
-            <p style="font-size:14px; color:#64748b;">구글 AI 스튜디오에서 발급받은 API 키를 입력해 주세요.</p>
+            <p style="font-size:14px; color:#64748b;">구글 AI 스튜디오의 API 키를 정확하게 넣어주세요.</p>
             <label for="apiKey">Gemini API Key</label>
-            <input type="password" id="apiKey" placeholder="AIzaSy... 형태의 API 키를 입력하세요.">
+            <input type="password" id="apiKey" placeholder="AIzaSy... 형태의 키를 입력하세요.">
             
             <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
                 <button id="btnCloseModal" class="secondary" style="margin:0; width:auto;">닫기</button>
@@ -63,18 +64,19 @@
         <div>
             <article>
                 <h3>🔍 1단계: 기출 유형 분석</h3>
-                <p>아래 상자를 <b>클릭하여 파일을 선택</b>하거나, 화면을 클릭한 상태에서 기출문제를 <b>Ctrl + V</b>로 붙여넣으세요.</p>
+                <p>아래 영역을 <b>마우스로 클릭</b>하여 파일을 고르거나, <b>Ctrl + V</b>로 이미지를 붙여넣어 주세요.</p>
                 
                 <div id="pasteZone" class="paste-zone">
-                    <span id="pastePrompt">📋 <b>여기 영역을 클릭</b>하여 시험지 이미지를 선택하거나 <b>Ctrl + V</b>를 누르세요.</span>
+                    <span id="pastePrompt">📂 여기를 클릭하여 시험지 사진을 업로드하거나 이미지를 붙여넣으세요.</span>
                     <img id="previewImg" class="preview-img" alt="시험지 미리보기">
                 </div>
-                <input type="file" id="hiddenFileInput" accept="image/*" style="display: none !important;">
+                
+                <input type="file" id="hiddenFileInput" accept="image/*" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden;">
 
                 <button id="btnAnalyze" class="contrast" style="width:100%;">📈 기출 패턴 분석 시작</button>
                 <div id="analyzeLoading" class="loading">⏳ Gemini 엔진이 이미지 구조를 정밀 판독하고 있습니다...</div>
                 
-                <label for="guidelineText" style="margin-top:20px; font-weight:bold;">📋 분석된 출제 지침 (직접 수정 가능)</label>
+                <label for="guidelineText" style="margin-top:20px; font-weight:bold;">📋 분석된 출제 지침</label>
                 <textarea id="guidelineText" rows="6" placeholder="기출문제 이미지 판독 데이터가 여기에 기록됩니다."></textarea>
             </article>
 
@@ -87,51 +89,4 @@
         <div>
             <article style="min-height: 100%;">
                 <h3>🎯 3단계: 서답형 문제 생성</h3>
-                <p>앞서 완성된 출제 지침과 입력된 지문을 바탕으로 신규 변별력 문항을 출제합니다.</p>
-                
-                <label for="qCount">생성할 서답형 문제 수</label>
-                <input type="number" id="qCount" min="1" max="10" value="3">
-                
-                <button id="btnGenerate" style="width:100%;">🚀 서답형 문제 및 답안 생성</button>
-                <div id="generateLoading" class="loading">⏳ 고품질 서답형 문제를 빌드하고 있습니다...</div>
-                
-                <hr>
-                <h4>📋 출제된 서답형 시험지 결과</h4>
-                <div id="outputResult" class="result-box">문제 출제가 완료되면 정답 및 채점 기준이 실시간 업데이트됩니다.</div>
-            </article>
-        </div>
-    </main>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAvGq_MefnWW91lVO94LcnkT1klLY_XtLs",
-            authDomain: "impact7-test.firebaseapp.com",
-            projectId: "impact7-test",
-            storageBucket: "impact7-test.firebasestorage.app",
-            messagingSenderId: "492840515825",
-            appId: "1:492840515825:web:58afa88d3c945383685150",
-            measurementId: "G-ENPZMXM2BC"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const provider = new GoogleAuthProvider();
-
-        let GEMINI_API_KEY = "";
-        let targetBase64 = "";
-        let targetMimeType = "image/png";
-
-        // 🛠️ DOM 로드가 끝난 후 엘리먼트를 확실하게 연결하는 구조
-        document.addEventListener("DOMContentLoaded", () => {
-            const btnSettings = document.getElementById('btnSettings');
-            const configModal = document.getElementById('configModal');
-            const apiKeyInput = document.getElementById('apiKey');
-            const btnCloseModal = document.getElementById('btnCloseModal');
-            const btnSaveKey = document.getElementById('btnSaveKey');
-            const btnLogin = document.getElementById('btnLogin');
-            const btnLogout
+                <p>완성된 출제 지침과 입력된 지문을 바탕으로 신규 변별력 문항을 출제합니다.</p>
