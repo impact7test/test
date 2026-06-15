@@ -32,7 +32,7 @@
 
     <header>
         <h1>📝 고등학교 영어 서답형 문제 생성기</h1>
-        <p>API 입력값 우선 순위 강제 조정 및 키 매칭 검증 스크립트가 적용되었습니다.</p>
+        <p>구글 공식 라이브러리(SDK) 연동 방식으로 전면 교체된 검증 버전입니다.</p>
     </header>
 
     <section class="auth-panel">
@@ -47,7 +47,7 @@
     <div id="configModal" class="modal-overlay">
         <div class="modal-box">
             <h4>🔑 마스터 API 제어 시스템</h4>
-            <p style="font-size:14px; color:#64748b;">API Key를 붙여넣으신 뒤 아래 [저장] 버튼을 꼭 눌러주세요.</p>
+            <p style="font-size:14px; color:#64748b;">API Key를 등록하시면 모든 컴퓨터에서 연동되어 편리합니다.</p>
             <label for="apiKey">Gemini API Key</label>
             <input type="password" id="apiKey" placeholder="AIzaSy... 형태의 API 키를 입력하세요.">
             
@@ -71,7 +71,7 @@
                 <input type="file" id="hiddenFileInput" accept="image/*" style="display: none;">
 
                 <button id="btnAnalyze" class="contrast" style="width:100%;">📈 기출 패턴 분석 시작</button>
-                <div id="analyzeLoading" class="loading">⏳ Gemini가 이미지 속 서답형 출제 패턴을 분석하고 있습니다...</div>
+                <div id="analyzeLoading" class="loading">⏳ 구글 SDK를 통해 이미지 속 서답형 출제 패턴을 분석하고 있습니다...</div>
                 
                 <label for="guidelineText" style="margin-top:20px; font-weight:bold;">📋 분석된 출제 지침 (직접 수정 가능)</label>
                 <textarea id="guidelineText" rows="6" placeholder="기출문제 이미지 판독 데이터가 여기에 기록됩니다."></textarea>
@@ -105,6 +105,9 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        
+        // 📦 구글 공식 라이브러리(SDK) 웹 모듈 임포트
+        import { GoogleGenAI } from "https://esm.run/@google/genai";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAvGq_MefnWW91lVO94LcnkT1klLY_XtLs",
@@ -234,49 +237,47 @@
             }
         });
 
-        // 🛡️ [핵심 수정] DB 키보다 사용자가 설정창에 실시간 입력한 Input 값을 무조건 최우선 배치하도록 방어 코드 설정
         const getEffectiveKey = () => {
             const inputField = document.getElementById('apiKey');
             const inputKeyValue = inputField ? inputField.value.trim() : "";
             return inputKeyValue || GEMINI_API_KEY;
         };
 
+        // 📈 1단계: 공식 SDK 기반 이미지 패턴 분석
         async function analyzeImage() {
             const apiKey = getEffectiveKey();
-            if (!apiKey) return alert("⚙️ 설정 메뉴에서 Gemini API 키를 입력한 뒤 저장해 주세요.");
-            if (!targetBase64) return alert("분석할 기출시험지 이미지를 먼저 영역에 붙여넣어 주세요.");
+            if (!apiKey) return alert("⚙️ 설정 메뉴에서 Gemini API 키를 입력해 주세요.");
+            if (!targetBase64) return alert("분석할 기출시험지 이미지를 먼저 붙여넣어 주세요.");
 
             document.getElementById("analyzeLoading").style.display = "block";
 
             try {
-                // v1/models 호환 주소 매핑
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-001:generateContent?key=${apiKey}`;
-                const promptText = "너는 대한민국 고등학교 영어 내신 출제 전문가야. 제공된 시험지 이미지에 포함된 주관식 서답형 문항들을 분석해서 출제 가이드라인을 한글로 정리해줘.";
+                // 구글 인스턴스 공식 초기화 및 호출
+                const ai = new GoogleGenAI({ apiKey: apiKey });
+                const promptText = "너는 대한민국 고등학교 영어 내신 출제 전문가야. 제공된 시험지 이미지에 포함된 주관식 서답형 문항들을 분석해서 출제 가이드라인을 한글로 깔끔하게 정리해줘.";
 
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: promptText },
-                                { inlineData: { mimeType: targetMimeType, data: targetBase64 } }
-                            ]
-                        }]
-                    })
+                const response = await ai.models.generateContent({
+                    model: 'gemini-1.5-flash',
+                    contents: [
+                        promptText,
+                        {
+                            inlineData: {
+                                mimeType: targetMimeType,
+                                data: targetBase64
+                            }
+                        }
+                    ]
                 });
 
-                const result = await response.json();
-                if (result.error) throw new Error(result.error.message);
-                
-                document.getElementById("guidelineText").value = result.candidates[0].content.parts[0].text;
+                document.getElementById("guidelineText").value = response.text;
             } catch (error) {
-                alert("기출 패턴 판독 오류: " + error.message + "\n\n오류 팝업이 뜬다면 우측 상단 ⚙️ 설정을 눌러 정확한 API Key를 다시 입력해 주세요.");
+                alert("기출 패턴 판독 오류: " + error.message);
             } finally {
                 document.getElementById("analyzeLoading").style.display = "none";
             }
         }
 
+        // 🚀 3단계: 공식 SDK 기반 서답형 문항 생성
         async function generateQuestions() {
             const apiKey = getEffectiveKey();
             if (!apiKey) return alert("연동된 API 마스터 키가 없습니다.");
@@ -289,21 +290,15 @@
             document.getElementById("generateLoading").style.display = "block";
 
             try {
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-001:generateContent?key=${apiKey}`;
+                const ai = new GoogleGenAI({ apiKey: apiKey });
                 const promptText = `고등학교 영어 교사 입장에서 다음 [출제 지침]에서 보여준 서답형 유형과 조건을 반영하여, [신규 대상 지문]을 변형한 새로운 주관식 내신 시험 문제 ${count}개를 출제해라. 각 문항마다 '⚠️ [작성 조건]', '✅ [모범 답안]', '📝 [부분 점수 감점 기준표]'를 포함해 다채롭게 한글로 완성해줘.\n\n[출제 지침]\n${guideline}\n\n[신규 대상 지문]\n${rangeText}`;
 
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: promptText }] }]
-                    })
+                const response = await ai.models.generateContent({
+                    model: 'gemini-1.5-flash',
+                    contents: promptText
                 });
 
-                const result = await response.json();
-                if (result.error) throw new Error(result.error.message);
-                
-                document.getElementById("outputResult").textContent = result.candidates[0].content.parts[0].text;
+                document.getElementById("outputResult").textContent = response.text;
             } catch (error) {
                 alert("문항 빌드 오류: " + error.message);
             } finally {
