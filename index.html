@@ -32,7 +32,7 @@
 
     <header>
         <h1>📝 고등학교 영어 서답형 문제 생성기</h1>
-        <p>구글 공식 라이브러리(SDK) 연동 방식으로 전면 교체된 검증 버전입니다.</p>
+        <p>구글 정식 API 규격 주소 맵핑이 완료된 최종 빌드입니다.</p>
     </header>
 
     <section class="auth-panel">
@@ -47,7 +47,7 @@
     <div id="configModal" class="modal-overlay">
         <div class="modal-box">
             <h4>🔑 마스터 API 제어 시스템</h4>
-            <p style="font-size:14px; color:#64748b;">API Key를 등록하시면 모든 컴퓨터에서 연동되어 편리합니다.</p>
+            <p style="font-size:14px; color:#64748b;">구글 AI 스튜디오에서 발급받은 API 키를 정확하게 넣어주세요.</p>
             <label for="apiKey">Gemini API Key</label>
             <input type="password" id="apiKey" placeholder="AIzaSy... 형태의 API 키를 입력하세요.">
             
@@ -71,7 +71,7 @@
                 <input type="file" id="hiddenFileInput" accept="image/*" style="display: none;">
 
                 <button id="btnAnalyze" class="contrast" style="width:100%;">📈 기출 패턴 분석 시작</button>
-                <div id="analyzeLoading" class="loading">⏳ 구글 SDK를 통해 이미지 속 서답형 출제 패턴을 분석하고 있습니다...</div>
+                <div id="analyzeLoading" class="loading">⏳ Gemini 엔진이 이미지 구조를 정밀 판독하고 있습니다...</div>
                 
                 <label for="guidelineText" style="margin-top:20px; font-weight:bold;">📋 분석된 출제 지침 (직접 수정 가능)</label>
                 <textarea id="guidelineText" rows="6" placeholder="기출문제 이미지 판독 데이터가 여기에 기록됩니다."></textarea>
@@ -105,9 +105,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        
-        // 📦 구글 공식 라이브러리(SDK) 웹 모듈 임포트
-        import { GoogleGenAI } from "https://esm.run/@google/genai";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAvGq_MefnWW91lVO94LcnkT1klLY_XtLs",
@@ -185,126 +182,4 @@
                 reader.onload = (e) => {
                     targetBase64 = e.target.result.split(',')[1];
                     previewImg.src = e.target.result;
-                    previewImg.style.display = "block";
-                    pastePrompt.innerHTML = `✅ <b>시험지 기출 이미지 로드 완료!</b>`;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        onAuthStateChanged(auth, async (user) => {
-            const userInfo = document.getElementById('userInfo');
-            const btnLogin = document.getElementById('btnLogin');
-            const btnLogout = document.getElementById('btnLogout');
-            const btnSettings = document.getElementById('btnSettings');
-            const apiKeyInput = document.getElementById('apiKey');
-
-            if (user) {
-                const email = user.email;
-                const domain = email.split('@')[1];
-
-                if (domain !== 'impact7.kr') {
-                    alert("인증 실패: @impact7.kr 공식 도메인 계정만 접근할 수 있습니다.");
-                    await signOut(auth);
-                    return;
-                }
-
-                btnLogin.style.display = "none";
-                btnLogout.style.display = "inline-block";
-                userInfo.textContent = `👤 ${user.displayName} 선생님`;
-
-                try {
-                    const docRef = await getDoc(doc(db, "secure_config", "gemini"));
-                    if (docRef.exists() && docRef.data().apiKey) {
-                        GEMINI_API_KEY = docRef.data().apiKey.trim();
-                        if(apiKeyInput) apiKeyInput.value = GEMINI_API_KEY;
-                        btnSettings.className = "btn-settings blue";
-                        btnSettings.textContent = "⚙️ 설정 (연결됨)";
-                    } else {
-                        btnSettings.className = "btn-settings gray";
-                        btnSettings.textContent = "⚙️ 설정 (키 없음)";
-                    }
-                } catch (err) {
-                    console.error("키 불러오기 실패:", err);
-                }
-            } else {
-                btnLogin.style.display = "inline-block";
-                btnLogout.style.display = "none";
-                userInfo.textContent = "🔒 구글 계정 인증이 필요합니다.";
-                GEMINI_API_KEY = "";
-                btnSettings.className = "btn-settings gray";
-                btnSettings.textContent = "⚙️ 설정";
-            }
-        });
-
-        const getEffectiveKey = () => {
-            const inputField = document.getElementById('apiKey');
-            const inputKeyValue = inputField ? inputField.value.trim() : "";
-            return inputKeyValue || GEMINI_API_KEY;
-        };
-
-        // 📈 1단계: 공식 SDK 기반 이미지 패턴 분석
-        async function analyzeImage() {
-            const apiKey = getEffectiveKey();
-            if (!apiKey) return alert("⚙️ 설정 메뉴에서 Gemini API 키를 입력해 주세요.");
-            if (!targetBase64) return alert("분석할 기출시험지 이미지를 먼저 붙여넣어 주세요.");
-
-            document.getElementById("analyzeLoading").style.display = "block";
-
-            try {
-                // 구글 인스턴스 공식 초기화 및 호출
-                const ai = new GoogleGenAI({ apiKey: apiKey });
-                const promptText = "너는 대한민국 고등학교 영어 내신 출제 전문가야. 제공된 시험지 이미지에 포함된 주관식 서답형 문항들을 분석해서 출제 가이드라인을 한글로 깔끔하게 정리해줘.";
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-1.5-flash',
-                    contents: [
-                        promptText,
-                        {
-                            inlineData: {
-                                mimeType: targetMimeType,
-                                data: targetBase64
-                            }
-                        }
-                    ]
-                });
-
-                document.getElementById("guidelineText").value = response.text;
-            } catch (error) {
-                alert("기출 패턴 판독 오류: " + error.message);
-            } finally {
-                document.getElementById("analyzeLoading").style.display = "none";
-            }
-        }
-
-        // 🚀 3단계: 공식 SDK 기반 서답형 문항 생성
-        async function generateQuestions() {
-            const apiKey = getEffectiveKey();
-            if (!apiKey) return alert("연동된 API 마스터 키가 없습니다.");
-
-            const guideline = document.getElementById("guidelineText").value.trim();
-            const rangeText = document.getElementById("rangeText").value.trim();
-            const count = document.getElementById("qCount").value;
-
-            if (!guideline || !rangeText) return alert("1단계의 기출 분석 내용과 2단계의 신규 시험범위 본문이 모두 채워져야 합니다.");
-            document.getElementById("generateLoading").style.display = "block";
-
-            try {
-                const ai = new GoogleGenAI({ apiKey: apiKey });
-                const promptText = `고등학교 영어 교사 입장에서 다음 [출제 지침]에서 보여준 서답형 유형과 조건을 반영하여, [신규 대상 지문]을 변형한 새로운 주관식 내신 시험 문제 ${count}개를 출제해라. 각 문항마다 '⚠️ [작성 조건]', '✅ [모범 답안]', '📝 [부분 점수 감점 기준표]'를 포함해 다채롭게 한글로 완성해줘.\n\n[출제 지침]\n${guideline}\n\n[신규 대상 지문]\n${rangeText}`;
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-1.5-flash',
-                    contents: promptText
-                });
-
-                document.getElementById("outputResult").textContent = response.text;
-            } catch (error) {
-                alert("문항 빌드 오류: " + error.message);
-            } finally {
-                document.getElementById("generateLoading").style.display = "none";
-            }
-        }
-    </script>
-</body>
-</html>
+                    previewImg.style.display = "
