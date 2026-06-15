@@ -32,7 +32,7 @@
 
     <header>
         <h1>📝 고등학교 영어 서답형 문제 생성기</h1>
-        <p>Gemini 모델명 오류 및 스코프 바인딩이 완벽하게 교정된 최종 배포 버전입니다.</p>
+        <p>API 입력값 우선 순위 강제 조정 및 키 매칭 검증 스크립트가 적용되었습니다.</p>
     </header>
 
     <section class="auth-panel">
@@ -47,7 +47,7 @@
     <div id="configModal" class="modal-overlay">
         <div class="modal-box">
             <h4>🔑 마스터 API 제어 시스템</h4>
-            <p style="font-size:14px; color:#64748b;">DB에 등록해 두시면 모든 강사님이 키 입력 없이 바로 출제 가능합니다.</p>
+            <p style="font-size:14px; color:#64748b;">API Key를 붙여넣으신 뒤 아래 [저장] 버튼을 꼭 눌러주세요.</p>
             <label for="apiKey">Gemini API Key</label>
             <input type="password" id="apiKey" placeholder="AIzaSy... 형태의 API 키를 입력하세요.">
             
@@ -126,7 +126,6 @@
         let targetMimeType = "image/png";
 
         document.addEventListener("DOMContentLoaded", () => {
-            // UI 요소 바인딩
             const btnSettings = document.getElementById('btnSettings');
             const configModal = document.getElementById('configModal');
             const apiKeyInput = document.getElementById('apiKey');
@@ -139,17 +138,14 @@
             const pastePrompt = document.getElementById("pastePrompt");
             const hiddenFileInput = document.getElementById("hiddenFileInput");
             
-            // 핵심 기능 버튼 바인딩 (onclick 에러 완벽 해결)
             document.getElementById("btnAnalyze").addEventListener("click", analyzeImage);
             document.getElementById("btnGenerate").addEventListener("click", generateQuestions);
 
-            // 모달 제어 이벤트
             btnSettings.addEventListener('click', () => configModal.style.display = 'flex');
             btnCloseModal.addEventListener('click', () => configModal.style.display = 'none');
             btnLogin.addEventListener('click', () => signInWithPopup(auth, provider).catch(err => alert("로그인 오류: " + err.message)));
             btnLogout.addEventListener('click', () => signOut(auth));
 
-            // API 키 저장
             btnSaveKey.addEventListener('click', async () => {
                 const keyInput = apiKeyInput.value.trim();
                 if(!keyInput) return alert("Gemini API 키를 입력해 주세요.");
@@ -158,14 +154,13 @@
                     GEMINI_API_KEY = keyInput;
                     btnSettings.className = "btn-settings blue";
                     btnSettings.textContent = "⚙️ 설정 (연결됨)";
-                    alert("API 마스터 키가 성공적으로 영구 저장되었습니다.");
+                    alert("API 마스터 키가 성공적으로 저장되었습니다.");
                     configModal.style.display = 'none';
                 } catch (e) {
                     alert("DB 저장 실패: " + e.message);
                 }
             });
 
-            // 이미지 업로드 및 붙여넣기 처리
             pasteZone.addEventListener("click", () => hiddenFileInput.click());
             hiddenFileInput.addEventListener("change", (e) => {
                 if(e.target.files.length > 0) handleImageFile(e.target.files[0]);
@@ -194,7 +189,6 @@
             }
         });
 
-        // 파이어베이스 인증 상태 변경 감지
         onAuthStateChanged(auth, async (user) => {
             const userInfo = document.getElementById('userInfo');
             const btnLogin = document.getElementById('btnLogin');
@@ -219,7 +213,7 @@
                 try {
                     const docRef = await getDoc(doc(db, "secure_config", "gemini"));
                     if (docRef.exists() && docRef.data().apiKey) {
-                        GEMINI_API_KEY = docRef.data().apiKey;
+                        GEMINI_API_KEY = docRef.data().apiKey.trim();
                         if(apiKeyInput) apiKeyInput.value = GEMINI_API_KEY;
                         btnSettings.className = "btn-settings blue";
                         btnSettings.textContent = "⚙️ 설정 (연결됨)";
@@ -240,18 +234,24 @@
             }
         });
 
-        // 📈 1단계: 기출 분석 함수 (gemini-1.5-flash-latest 버전 버그 수정 완료)
+        // 🛡️ [핵심 수정] DB 키보다 사용자가 설정창에 실시간 입력한 Input 값을 무조건 최우선 배치하도록 방어 코드 설정
+        const getEffectiveKey = () => {
+            const inputField = document.getElementById('apiKey');
+            const inputKeyValue = inputField ? inputField.value.trim() : "";
+            return inputKeyValue || GEMINI_API_KEY;
+        };
+
         async function analyzeImage() {
-            const apiKey = GEMINI_API_KEY || (document.getElementById('apiKey') ? document.getElementById('apiKey').value.trim() : "");
-            if (!apiKey) return alert("⚙️ 설정 메뉴에서 Gemini API 키를 먼저 연동해 주세요.");
+            const apiKey = getEffectiveKey();
+            if (!apiKey) return alert("⚙️ 설정 메뉴에서 Gemini API 키를 입력한 뒤 저장해 주세요.");
             if (!targetBase64) return alert("분석할 기출시험지 이미지를 먼저 영역에 붙여넣어 주세요.");
 
             document.getElementById("analyzeLoading").style.display = "block";
 
             try {
-                // 모델명 뒤에 -latest를 명시하여 v1 API 버전 불일치 문제 완벽 차단
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-                const promptText = "너는 대한민국 고등학교 영어 내신 출제 전문가이자 채점관이야. 제공된 시험지 이미지에 포함된 주관식 서답형 문항들을 분석해서, 어떤 유형(예: 특정 단어 형태 변화 배열, 한글 뜻에 맞는 조건 영작, 어법상 틀린 곳 찾아 고치기 등)이 주로 출제되는지 핵심 출제 가이드라인을 교사들이 참고하기 좋게 한글로 명확히 정리해줘.";
+                // v1/models 호환 주소 매핑
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-001:generateContent?key=${apiKey}`;
+                const promptText = "너는 대한민국 고등학교 영어 내신 출제 전문가야. 제공된 시험지 이미지에 포함된 주관식 서답형 문항들을 분석해서 출제 가이드라인을 한글로 정리해줘.";
 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -271,15 +271,14 @@
                 
                 document.getElementById("guidelineText").value = result.candidates[0].content.parts[0].text;
             } catch (error) {
-                alert("기출 패턴 판독 오류: " + error.message + "\n\n모델명을 수정했으나 에러가 지속된다면 API Key 자체의 유효성을 체크해 주세요.");
+                alert("기출 패턴 판독 오류: " + error.message + "\n\n오류 팝업이 뜬다면 우측 상단 ⚙️ 설정을 눌러 정확한 API Key를 다시 입력해 주세요.");
             } finally {
                 document.getElementById("analyzeLoading").style.display = "none";
             }
         }
 
-        // 🚀 3단계: 신규 서답형 문항 생성 함수
         async function generateQuestions() {
-            const apiKey = GEMINI_API_KEY || (document.getElementById('apiKey') ? document.getElementById('apiKey').value.trim() : "");
+            const apiKey = getEffectiveKey();
             if (!apiKey) return alert("연동된 API 마스터 키가 없습니다.");
 
             const guideline = document.getElementById("guidelineText").value.trim();
@@ -290,8 +289,8 @@
             document.getElementById("generateLoading").style.display = "block";
 
             try {
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-                const promptText = `고등학교 영어 교사 입장에서 다음 [출제 지침]에서 보여준 서답형 유형과 조건(글자 수 제한, 어형 변화 여부 등)을 100% 반영하여, [신규 대상 지문]을 변형한 새로운 주관식 내신 시험 문제 ${count}개를 출제해라. 각 문항마다 명확한 '⚠️ [작성 조건]', '✅ [모범 답안]', '📝 [부분 점수 감점 기준표]'를 포함해 다채롭게 한글로 완성해줘.\n\n[출제 지침]\n${guideline}\n\n[신규 대상 지문]\n${rangeText}`;
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-001:generateContent?key=${apiKey}`;
+                const promptText = `고등학교 영어 교사 입장에서 다음 [출제 지침]에서 보여준 서답형 유형과 조건을 반영하여, [신규 대상 지문]을 변형한 새로운 주관식 내신 시험 문제 ${count}개를 출제해라. 각 문항마다 '⚠️ [작성 조건]', '✅ [모범 답안]', '📝 [부분 점수 감점 기준표]'를 포함해 다채롭게 한글로 완성해줘.\n\n[출제 지침]\n${guideline}\n\n[신규 대상 지문]\n${rangeText}`;
 
                 const response = await fetch(url, {
                     method: 'POST',
