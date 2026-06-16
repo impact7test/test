@@ -683,8 +683,23 @@ ${rangeText}
         const loadGuideSelect = document.getElementById("loadGuideSelect");
         let guideCache = [];
 
+// [수정 완료] 클릭할 때마다 리셋되는 현상을 없앴습니다.
         if (loadGuideSelect) {
-            loadGuideSelect.onmousedown = async () => {
+            loadGuideSelect.onmousedown = null; 
+
+            loadGuideSelect.onchange = () => {
+                const v = loadGuideSelect.value;
+                if (v === "") return;
+                const item = guideCache[parseInt(v, 10)];
+                if (!item) return;
+                
+                document.getElementById("guidelineText").value = item.guideline || "";
+                const cg = document.getElementById("currentGuideName");
+                cg.textContent = item.name || item.id || "(이름 없음)";
+                cg.style.display = "inline-block";
+                syncGuidelineView();
+            };
+        }
                 try {
                     const querySnap = await getDocs(collection(db, "shared_guidelines"));
                     guideCache = [];
@@ -718,7 +733,53 @@ ${rangeText}
         }
 
 // ===== 지침 삭제 =====
+// ===== 지침 삭제 =====
         const btnDeleteGuide = document.getElementById("btnDeleteGuide");
+        if (btnDeleteGuide) {
+            btnDeleteGuide.onclick = async () => {
+                // 드롭다운에 선택된 값을 그대로 가져옵니다 (번호 질문 안 함)
+                const selectedValue = loadGuideSelect.value;
+                
+                if (selectedValue === "") {
+                    return alert("먼저 '지침 불러오기' 드롭다운에서 삭제할 지침을 선택해 주세요.");
+                }
+
+                try {
+                    const target = guideCache[parseInt(selectedValue, 10)];
+                    if (!target) return alert("선택한 지침을 찾을 수 없습니다.");
+
+                    const docId = target.id || target.name;
+
+                    if (confirm(`"${target.name || "(이름 없음)"}" 지침을 정말 삭제하시겠습니까?`)) {
+                        showProgress("지침을 삭제하는 중입니다...");
+                        
+                        // Firestore에서 즉시 삭제
+                        await deleteDoc(doc(db, "shared_guidelines", docId));
+                        
+                        // 화면 UI 리셋
+                        document.getElementById("guidelineText").value = "";
+                        const cg = document.getElementById("currentGuideName");
+                        cg.textContent = "";
+                        cg.style.display = "none";
+                        loadGuideSelect.value = "";
+                        syncGuidelineView();
+                        
+                        // 드롭다운 새로고침 처리
+                        if (typeof refreshGuideSelect === "function") {
+                            await refreshGuideSelect();
+                        } else {
+                            window.location.reload(); 
+                        }
+                        
+                        hideProgress();
+                        alert("성공적으로 삭제되었습니다.");
+                    }
+                } catch (e) {
+                    hideProgress();
+                    alert("삭제 오류: " + e.message);
+                }
+            };
+        }
         if (btnDeleteGuide) {
             btnDeleteGuide.onclick = async () => {
                 // 드롭다운에서 현재 선택된 옵션의 index 값 가져오기
