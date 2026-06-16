@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <style>
         body { padding: 20px; max-width: 1200px; margin: 0 auto; background-color: #f8fafc; }
-        /* 🔽 위에서 아래로 한 줄씩 쌓이도록 변경 */
         .stack-container { display: flex; flex-direction: column; gap: 25px; margin-top: 20px; }
 
         .auth-status-bar { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
@@ -39,7 +38,8 @@
             <button id="btnLogin" class="outline" style="margin:0; padding:4px 12px; font-size:13px; display:none;">로그인</button>
             <button id="btnLogout" class="secondary" style="margin:0; padding:4px 12px; font-size:13px; display:none;">로그아웃</button>
         </div>
-        <button id="btnSettings" class="btn-settings">⚙️ 설정</button>
+        <!-- 🔽 설정 버튼은 기본적으로 숨김. 관리자 로그인 시에만 표시됨 -->
+        <button id="btnSettings" class="btn-settings" style="display:none;">⚙️ 설정</button>
     </div>
 
     <div id="configModal" class="modal-overlay">
@@ -54,7 +54,6 @@
         </div>
     </div>
 
-    <!-- 🔽 좌우 2단 구조를 없애고, 1→2→3 세로 나열로 변경 -->
     <main class="stack-container">
         <article>
             <h3>🔍 1단계: 기출 유형 분석</h3>
@@ -113,8 +112,10 @@
         const provider = new GoogleAuthProvider();
         const db = getFirestore(app);
 
-        // 사용할 모델명 (최신 모델명은 공식 문서에서 확인하세요)
         const GEMINI_MODEL = "gemini-2.5-flash";
+
+        // 🔽 설정 버튼을 사용할 수 있는 관리자 계정 (이 이메일만 설정 버튼이 보임)
+        const ADMIN_EMAIL = "roh@impact7.kr";
 
         let GEMINI_API_KEY = "";
         let targetBase64 = "";
@@ -194,7 +195,7 @@
         onAuthStateChanged(auth, async (user) => {
             const userInfo = document.getElementById('userInfo');
             if (user) {
-                const email = user.email || "";
+                const email = (user.email || "").toLowerCase();
                 if (!email.endsWith('@impact7.kr')) {
                     alert("인증 실패: @impact7.kr 계정만 허용됩니다.");
                     await signOut(auth);
@@ -204,22 +205,30 @@
                 if(btnLogout) btnLogout.style.display = "inline-block";
                 if(userInfo) userInfo.textContent = `👤 ${user.displayName || '강사'} 로그인됨`;
 
-                try {
-                    const docRef = await getDoc(doc(db, "secure_config", "gemini"));
-                    if (docRef.exists() && docRef.data().apiKey) {
-                        GEMINI_API_KEY = docRef.data().apiKey.trim();
-                        if(apiKeyInput) apiKeyInput.value = GEMINI_API_KEY;
-                        if(btnSettings) {
-                            btnSettings.classList.add("connected");
-                            btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                // 🔽 관리자 계정일 때만 설정 버튼 표시
+                const isAdmin = (email === ADMIN_EMAIL.toLowerCase());
+                if(btnSettings) btnSettings.style.display = isAdmin ? "inline-block" : "none";
+
+                // 관리자만 저장된 API 키를 불러옴
+                if (isAdmin) {
+                    try {
+                        const docRef = await getDoc(doc(db, "secure_config", "gemini"));
+                        if (docRef.exists() && docRef.data().apiKey) {
+                            GEMINI_API_KEY = docRef.data().apiKey.trim();
+                            if(apiKeyInput) apiKeyInput.value = GEMINI_API_KEY;
+                            if(btnSettings) {
+                                btnSettings.classList.add("connected");
+                                btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                            }
                         }
+                    } catch (err) {
+                        console.log("동기화 완료");
                     }
-                } catch (err) {
-                    console.log("동기화 완료");
                 }
             } else {
                 if(btnLogin) btnLogin.style.display = "inline-block";
                 if(btnLogout) btnLogout.style.display = "none";
+                if(btnSettings) btnSettings.style.display = "none"; // 로그아웃 시 설정 버튼 숨김
                 if(userInfo) userInfo.textContent = "🔒 구글 로그인 연동이 필요합니다.";
             }
         });
