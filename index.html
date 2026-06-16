@@ -420,6 +420,58 @@
             };
         }
 
+        // ===== 2단계 파일 첨부 처리 =====
+        const rangePasteZone = document.getElementById("rangePasteZone");
+        const rangeFileInput = document.getElementById("rangeFileInput");
+
+        if (rangePasteZone && rangeFileInput) {
+            rangePasteZone.onclick = () => rangeFileInput.click();
+            rangeFileInput.onchange = (e) => {
+                for (let f of e.target.files) handleRangeImage(f);
+                e.target.value = "";
+            };
+        }
+
+        function handleRangeImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64 = e.target.result.split(",")[1];
+                rangeImageList.push({ base64: base64, mimeType: file.type, name: file.name });
+                renderRangeThumbs();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderRangeThumbs() {
+            const area = document.getElementById("rangePreviewArea");
+            const prompt = document.getElementById("rangePastePrompt");
+            if (!area) return;
+            area.innerHTML = "";
+            rangeImageList.forEach((item, idx) => {
+                const wrap = document.createElement("div");
+                wrap.className = "thumb-wrap";
+                if (item.mimeType === "application/pdf") {
+                    wrap.innerHTML = `<div style="padding:14px; border:1px solid #ccc; border-radius:6px; font-size:12px;">📄 ${item.name || "PDF"}</div>
+                                      <button class="thumb-del">×</button>`;
+                } else {
+                    wrap.innerHTML = `<img src="data:${item.mimeType};base64,${item.base64}">
+                                      <button class="thumb-del">×</button>`;
+                }
+                wrap.querySelector(".thumb-del").onclick = (ev) => {
+                    ev.stopPropagation();
+                    rangeImageList.splice(idx, 1);
+                    renderRangeThumbs();
+                };
+                area.appendChild(wrap);
+            });
+            if (prompt) {
+                prompt.textContent = rangeImageList.length > 0
+                    ? `파일 ${rangeImageList.length}개 첨부됨`
+                    : "여기를 클릭하여 신규 시험범위 사진을 업로드하거나 이미지를 붙여넣으세요. (여러 장 가능)";
+            }
+        }
+
+
         document.addEventListener("paste", (e) => {
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
             for (let item of items) {
