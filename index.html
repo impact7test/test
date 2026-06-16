@@ -162,7 +162,21 @@
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9999; justify-content: center; align-items: center; }
         .modal-box { background: #fff; padding: 26px; border-radius: 10px; max-width: 440px; width: 90%; box-shadow: 0 12px 28px rgba(0,0,0,0.2); }
         .modal-box h4 { margin-top: 0; color: var(--primary); }
-        .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+            .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+        /* 지침 목록 항목 */
+        .guide-item {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .guide-item:hover { background: #f0f7f3; border-color: var(--primary); }
+        .guide-item .g-name { font-weight: 700; color: var(--text); }
+        .guide-item .g-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
     </style>
 </head>
 <body>
@@ -462,10 +476,15 @@
 
 
 
+        const guideListModal = document.getElementById("guideListModal");
+        const guideListArea = document.getElementById("guideListArea");
+        const btnCloseGuideList = document.getElementById("btnCloseGuideList");
+
+        if (btnCloseGuideList) btnCloseGuideList.onclick = () => guideListModal.style.display = "none";
+
         if (btnLoadGuide) {
             btnLoadGuide.onclick = async () => {
                 try {
-                    // 저장된 지침 목록 전체 읽어오기
                     const querySnap = await getDocs(collection(db, "shared_guidelines"));
                     const list = [];
                     querySnap.forEach(d => list.push(d.data()));
@@ -477,23 +496,23 @@
                     // 최신순 정렬
                     list.sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || ""));
 
-                    // 번호를 붙여 목록 보여주기
-                    let menu = "불러올 지침의 번호를 입력하세요.\n\n";
-                    list.forEach((item, i) => {
+                    // 목록을 클릭 가능한 항목으로 만들어 화면에 표시
+                    guideListArea.innerHTML = "";
+                    list.forEach(item => {
                         const when = item.savedAt ? new Date(item.savedAt).toLocaleString("ko-KR") : "";
-                        menu += `${i + 1}. ${item.name || "(이름 없음)"}  [${item.savedBy || "?"} / ${when}]\n`;
+                        const div = document.createElement("div");
+                        div.className = "guide-item";
+                        div.innerHTML = `<div class="g-name">${item.name || "(이름 없음)"}</div>
+                                         <div class="g-meta">${item.savedBy || "?"} · ${when}</div>`;
+                        div.onclick = () => {
+                            document.getElementById("guidelineText").value = item.guideline || "";
+                            guideListModal.style.display = "none";
+                            alert(`"${item.name || "(이름 없음)"}" 지침을 불러왔습니다.`);
+                        };
+                        guideListArea.appendChild(div);
                     });
 
-                    const pick = prompt(menu);
-                    if (pick === null) return;       // 취소
-                    const idx = parseInt(pick, 10) - 1;
-                    if (isNaN(idx) || idx < 0 || idx >= list.length) {
-                        return alert("올바른 번호를 입력해 주세요.");
-                    }
-
-                    const chosen = list[idx];
-                    document.getElementById("guidelineText").value = chosen.guideline || "";
-                    alert(`"${chosen.name}" 지침을 불러왔습니다.`);
+                    guideListModal.style.display = "flex";
                 } catch (e) {
                     alert("불러오기 오류: " + e.message);
                 }
