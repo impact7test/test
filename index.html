@@ -584,21 +584,21 @@
                 // 로그인 성공 시 드롭다운 사전 세팅 (선택 풀림 버그 방지)
                 await refreshGuideSelect();
 
-                if (isAdmin) {
-                    try {
-                        const docRef = await getDoc(doc(db, "secure_config", "gemini"));
-                        if (docRef.exists() && docRef.data().apiKey) {
-                            GEMINI_API_KEY = docRef.data().apiKey.trim();
-                            if(apiKeyInput) apiKeyInput.value = GEMINI_API_KEY;
-                            if(btnSettings) {
-                                btnSettings.classList.add("connected");
-                                btnSettings.textContent = "설정 (연결됨)";
-                            }
+                // API 키는 로그인한 모든 강사가 불러오도록 (관리자만 설정/수정 가능)
+                try {
+                    const docRef = await getDoc(doc(db, "secure_config", "gemini"));
+                    if (docRef.exists() && docRef.data().apiKey) {
+                        GEMINI_API_KEY = docRef.data().apiKey.trim();
+                        if (isAdmin && apiKeyInput) apiKeyInput.value = GEMINI_API_KEY;
+                        if (isAdmin && btnSettings) {
+                            btnSettings.classList.add("connected");
+                            btnSettings.textContent = "설정 (연결됨)";
                         }
-                    } catch (err) {
-                        console.log("동기화 완료");
                     }
+                } catch (err) {
+                    console.log("키 불러오기 완료");
                 }
+
             } else {
                 if(btnLogin) btnLogin.style.display = "inline-block";
                 if(btnLogout) btnLogout.style.display = "none";
