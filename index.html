@@ -262,10 +262,17 @@
         </div>
 
         <!-- 탭 2: 신규 시험범위 입력 -->
-        <div id="tab2" class="panel">
+               <div id="tab2" class="panel">
             <div class="card">
                 <h3>신규 시험범위 파일 첨부</h3>
+
+                <label style="color: var(--primary); font-size: 16px; font-weight: 700;">분석된 출제 지침 (1단계 참고용)</label>
+                <textarea id="guidelineTextView" rows="8" readonly style="background:#f4f6f5;" placeholder="1단계에서 분석하거나 불러온 출제 지침이 여기에 표시됩니다."></textarea>
+
+                <hr style="margin:18px 0;">
+
                 <p class="desc">변형 문제를 출제할 신규 지문 이미지를 첨부하세요. (여러 장 가능) 첨부하면 지문이 자동으로 읽혀 아래에 표시됩니다.</p>
+
 
                 <div id="rangePasteZone" class="paste-zone">
                     <span id="rangePastePrompt">여기를 클릭하여 신규 시험범위 사진을 업로드하거나 이미지를 붙여넣으세요. (여러 장 가능)</span>
@@ -373,14 +380,28 @@
 
 
         // ===== 탭 전환 =====
+        // ===== 탭 전환 =====
         document.querySelectorAll(".tab").forEach(tab => {
             tab.onclick = () => {
                 document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
                 document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
                 tab.classList.add("active");
                 document.getElementById(tab.dataset.tab).classList.add("active");
+                syncGuidelineView();   // 탭 이동 시 2번 칸에 최신 지침 반영
             };
         });
+
+        // 1단계 지침을 2단계 참고 칸에 복사
+        function syncGuidelineView() {
+            const src = document.getElementById("guidelineText");
+            const view = document.getElementById("guidelineTextView");
+            if (src && view) view.value = src.value;
+        }
+
+        // 1단계 지침칸이 직접 바뀔 때도 반영
+        const guidelineTextEl = document.getElementById("guidelineText");
+        if (guidelineTextEl) guidelineTextEl.addEventListener("input", syncGuidelineView);
+
 
         // ===== 이미지 업로드 =====
         const pasteZone = document.getElementById("pasteZone");
