@@ -268,7 +268,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-           import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+         import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 
 
         const firebaseConfig = {
@@ -432,21 +433,18 @@
         // ===== 출제 지침 공유 저장/불러오기 =====
         const btnSaveGuide = document.getElementById("btnSaveGuide");
         const btnLoadGuide = document.getElementById("btnLoadGuide");
-
         if (btnSaveGuide) {
             btnSaveGuide.onclick = async () => {
                 const text = document.getElementById("guidelineText").value.trim();
                 if (!text) return alert("저장할 분석된 출제 지침이 없습니다.");
                 if (!auth.currentUser) return alert("로그인 후 저장할 수 있습니다.");
 
-                // 저장할 이름(파일명) 입력받기
                 const name = prompt("저장할 지침의 이름을 입력하세요. (예: 2학년 중간고사 1과)");
-                if (name === null) return;          // 취소 누름
+                if (name === null) return;
                 const fileName = name.trim();
                 if (!fileName) return alert("이름을 입력해야 저장됩니다.");
 
                 try {
-                    // 입력한 이름을 문서 ID로 사용해 저장
                     await setDoc(doc(db, "shared_guidelines", fileName), {
                         name: fileName,
                         guideline: text,
@@ -459,6 +457,7 @@
                 }
             };
         }
+
 
 
         if (btnLoadGuide) {
