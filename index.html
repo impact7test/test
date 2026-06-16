@@ -3,94 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>고등 영어 서답형 출제 AI 익스프레스</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <title>Impact7 서답형 유형 분석</title>
     <style>
-        body { padding: 20px; max-width: 1200px; margin: 0 auto; background-color: #f8fafc; }
-        .stack-container { display: flex; flex-direction: column; gap: 25px; margin-top: 20px; }
+        :root {
+            --primary: #1f7a4d;        /* 기존 앱 진한 녹색 */
+            --primary-dark: #155c39;
+            --bg: #f4f6f5;
+            --card: #ffffff;
+            --border: #e2e8e4;
+            --text: #2d3a33;
+            --muted: #6b7c72;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Pretendard", "Noto Sans KR", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+        }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; }
 
-        .auth-status-bar { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
-        .status-text { font-weight: 500; color: #334155; display: flex; align-items: center; gap: 8px; }
+        /* 상단 헤더 바 */
+        .app-header {
+            background: #ffffff;
+            border-bottom: 2px solid var(--primary);
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .app-header .title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .app-header .right-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .btn {
+            border: none;
+            border-radius: 6px;
+            padding: 7px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-outline { background: #fff; color: var(--primary); border: 1px solid var(--primary); }
+        .btn-gray { background: #e6ebe8; color: var(--text); }
+        .btn-settings.connected { background: var(--primary-dark); color: #fff; }
 
-        .btn-settings { margin: 0; width: auto; font-size: 14px; padding: 6px 12px; background-color: #64748b !important; border: none; color: white !important; }
-        .btn-settings.connected { background-color: #2563eb !important; }
+        /* 탭 메뉴 */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-top: 24px;
+            border-bottom: 2px solid var(--border);
+        }
+        .tab {
+            padding: 12px 22px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--muted);
+            border: 2px solid transparent;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            background: transparent;
+            font-size: 14px;
+        }
+        .tab.active {
+            color: var(--primary);
+            background: var(--card);
+            border-color: var(--border);
+            border-bottom: 2px solid var(--card);
+            margin-bottom: -2px;
+        }
 
-        .paste-zone { border: 2px dashed #94a3b8; padding: 40px 20px; border-radius: 8px; text-align: center; background: #ffffff; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; }
-        .paste-zone:hover { border-color: #2563eb; background: #f0f7ff; }
+        /* 탭 내용 카드 */
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 0 8px 8px 8px;
+            padding: 24px;
+        }
+        .card h3 { margin-top: 0; color: var(--primary); font-size: 16px; }
+        .desc { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
 
-        .preview-img { max-width: 100%; max-height: 250px; display: none; margin: 15px auto 0; border-radius: 6px; border: 1px solid #cbd5e1; }
-        .loading { display: none; color: #2563eb; font-weight: bold; margin-top: 10px; background: #eff6ff; padding: 10px; border-radius: 4px; }
-        .result-box { background: #ffffff; border-left: 5px solid #10b981; padding: 15px; border-radius: 4px; white-space: pre-wrap; min-height: 200px; border: 1px solid #e2e8f0; }
+        label { display: block; font-weight: 600; margin: 14px 0 6px; font-size: 13px; }
+        textarea, input[type="number"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            color: var(--text);
+        }
+        textarea { resize: vertical; }
+        input[type="number"] { max-width: 120px; }
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
-        .modal-box { background: white; padding: 25px; border-radius: 8px; max-width: 450px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .paste-zone {
+            border: 2px dashed #b6c4bc;
+            padding: 36px 20px;
+            border-radius: 8px;
+            text-align: center;
+            background: #fafcfb;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+            color: var(--muted);
+        }
+        .paste-zone:hover { border-color: var(--primary); background: #f0f7f3; }
+
+        .preview-img { max-width: 100%; max-height: 250px; display: none; margin: 14px auto 0; border-radius: 6px; border: 1px solid var(--border); }
+        .loading { display: none; color: var(--primary); font-weight: 600; margin-top: 10px; background: #eef6f1; padding: 10px; border-radius: 6px; }
+        .result-box { background: #fafcfb; border-left: 4px solid var(--primary); padding: 16px; border-radius: 6px; white-space: pre-wrap; min-height: 200px; border: 1px solid var(--border); margin-top: 8px; }
+        .btn-full { width: 100%; margin-top: 14px; padding: 12px; font-size: 14px; }
+
+        /* 설정 모달 */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-box { background: #fff; padding: 26px; border-radius: 10px; max-width: 440px; width: 90%; box-shadow: 0 12px 28px rgba(0,0,0,0.2); }
+        .modal-box h4 { margin-top: 0; color: var(--primary); }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
     </style>
 </head>
 <body>
 
-    <header>
-        <h2>📝 고등학교 영어 서답형 문제 생성기</h2>
+    <!-- 상단 헤더 -->
+    <header class="app-header">
+        <div class="title">Impact7 서답형 유형 분석</div>
+        <div class="right-area">
+            <span id="userInfo">로그인 필요</span>
+            <button id="btnLogin" class="btn btn-outline" style="display:none;">로그인</button>
+            <button id="btnLogout" class="btn btn-gray" style="display:none;">로그아웃</button>
+            <button id="btnSettings" class="btn btn-primary btn-settings" style="display:none;">설정</button>
+        </div>
     </header>
 
-    <div class="auth-status-bar">
-        <div class="status-text">
-            <span id="userInfo">🔒 파이어베이스 상태 연동 중...</span>
-            <button id="btnLogin" class="outline" style="margin:0; padding:4px 12px; font-size:13px; display:none;">로그인</button>
-            <button id="btnLogout" class="secondary" style="margin:0; padding:4px 12px; font-size:13px; display:none;">로그아웃</button>
+    <div class="container">
+
+        <!-- 탭 메뉴 -->
+        <div class="tabs">
+            <button class="tab active" data-tab="tab1">1. 기출유형 분석</button>
+            <button class="tab" data-tab="tab2">2. 신규 시험범위 입력</button>
+            <button class="tab" data-tab="tab3">3. 서답형 변형 문제 생성</button>
         </div>
-        <!-- 🔽 설정 버튼은 기본적으로 숨김. 관리자 로그인 시에만 표시됨 -->
-        <button id="btnSettings" class="btn-settings" style="display:none;">⚙️ 설정</button>
+
+        <!-- 탭 1: 기출유형 분석 -->
+        <div id="tab1" class="panel active">
+            <div class="card">
+                <h3>기출유형 분석</h3>
+                <p class="desc">아래 영역을 클릭하여 파일을 고르거나, Ctrl + V로 이미지를 붙여넣어 주세요.</p>
+
+                <div id="pasteZone" class="paste-zone">
+                    <span id="pastePrompt">여기를 클릭하여 시험지 사진을 업로드하거나 이미지를 붙여넣으세요.</span>
+                    <img id="previewImg" class="preview-img" alt="시험지 미리보기">
+                </div>
+
+                <input type="file" id="hiddenFileInput" accept="image/*" style="display: none;">
+
+                <button id="btnAnalyze" class="btn btn-primary btn-full">기출 패턴 분석 시작</button>
+                <div id="analyzeLoading" class="loading">기출문제를 분석하고 있습니다...</div>
+
+                <label for="guidelineText">분석된 출제 지침</label>
+                <textarea id="guidelineText" rows="6" placeholder="기출문제 이미지 판독 데이터가 여기에 기록됩니다."></textarea>
+            </div>
+        </div>
+
+        <!-- 탭 2: 신규 시험범위 입력 -->
+        <div id="tab2" class="panel">
+            <div class="card">
+                <h3>신규 시험범위 본문 텍스트</h3>
+                <p class="desc">이번에 변형 문제를 출제할 신규 부교재 또는 교과서 지문을 붙여넣어 주세요.</p>
+                <textarea id="rangeText" rows="10" placeholder="신규 시험범위 지문을 여기에 붙여넣으세요."></textarea>
+            </div>
+        </div>
+
+        <!-- 탭 3: 서답형 변형 문제 생성 -->
+        <div id="tab3" class="panel">
+            <div class="card">
+                <h3>서답형 변형 문제 생성</h3>
+                <label for="qCount">생성할 문항 수</label>
+                <input type="number" id="qCount" min="1" max="10" value="3">
+
+                <button id="btnGenerate" class="btn btn-primary btn-full">주관식 서답형 문제 생성 시작</button>
+                <div id="generateLoading" class="loading">고품질 서답형 문제를 생성 중입니다...</div>
+
+                <label style="margin-top:20px;">출제된 서답형 시험지 결과</label>
+                <div id="outputResult" class="result-box">문제 출제가 완료되면 정답 및 채점 기준이 출력됩니다.</div>
+            </div>
+        </div>
+
     </div>
 
+    <!-- 설정 모달 -->
     <div id="configModal" class="modal-overlay">
         <div class="modal-box">
-            <h4>🔑 Gemini API 마스터 키 설정</h4>
+            <h4>Gemini API 키 설정</h4>
             <label for="apiKey">API Key 입력</label>
             <input type="password" id="apiKey" placeholder="AIzaSy... 형태의 키를 입력하세요.">
-            <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
-                <button id="btnCloseModal" class="secondary" style="margin:0;">닫기</button>
-                <button id="btnSaveKey" style="margin:0;">저장하기</button>
+            <div class="modal-actions">
+                <button id="btnCloseModal" class="btn btn-gray">닫기</button>
+                <button id="btnSaveKey" class="btn btn-primary">저장하기</button>
             </div>
         </div>
     </div>
-
-    <main class="stack-container">
-        <article>
-            <h3>🔍 1단계: 기출 유형 분석</h3>
-            <p style="font-size:14px; color:#64748b;">아래 영역을 마우스로 <b>클릭</b>하여 파일을 고르거나, <b>Ctrl + V</b>로 이미지를 붙여넣어 주세요.</p>
-
-            <div id="pasteZone" class="paste-zone">
-                <span id="pastePrompt">📁 여기를 클릭하여 시험지 사진을 업로드하거나 이미지를 붙여넣으세요.</span>
-                <img id="previewImg" class="preview-img" alt="시험지 미리보기">
-            </div>
-
-            <input type="file" id="hiddenFileInput" accept="image/*" style="display: none;">
-
-            <button id="btnAnalyze" class="contrast" style="width:100%;">📊 기출 패턴 분석 시작</button>
-            <div id="analyzeLoading" class="loading">⏳ Gemini가 기출문제를 분석하고 있습니다...</div>
-
-            <label for="guidelineText" style="margin-top:15px; font-weight:bold;">📋 분석된 출제 지침</label>
-            <textarea id="guidelineText" rows="5" placeholder="기출문제 이미지 판독 데이터가 여기에 기록됩니다."></textarea>
-        </article>
-
-        <article>
-            <h3>📖 2단계: 신규 시험범위 본문 텍스트</h3>
-            <textarea id="rangeText" rows="6" placeholder="이번에 변형 문제를 출제할 신규 부교재 또는 교과서 지문을 붙여넣어 주세요."></textarea>
-        </article>
-
-        <article>
-            <h3>🎯 3단계: 서답형 변형 문제 생성</h3>
-            <label for="qCount">생성할 문항 수</label>
-            <input type="number" id="qCount" min="1" max="10" value="3" style="max-width:100px;">
-
-            <button id="btnGenerate" style="width:100%;">🚀 주관식 서답형 문제 생성 시작</button>
-            <div id="generateLoading" class="loading">⏳ 고품질 서답형 문제를 생성 중입니다...</div>
-
-            <hr>
-            <h4>📋 출제된 서답형 시험지 결과</h4>
-            <div id="outputResult" class="result-box">문제 출제가 완료되면 정답 및 채점 기준이 출력됩니다.</div>
-        </article>
-    </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -113,24 +239,31 @@
         const db = getFirestore(app);
 
         const GEMINI_MODEL = "gemini-2.5-flash";
-
-        // 🔽 설정 버튼을 사용할 수 있는 관리자 계정 (이 이메일만 설정 버튼이 보임)
         const ADMIN_EMAIL = "roh@impact7.kr";
 
         let GEMINI_API_KEY = "";
         let targetBase64 = "";
         let targetMimeType = "image/png";
 
+        // ===== 탭 전환 =====
+        document.querySelectorAll(".tab").forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+                document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+                tab.classList.add("active");
+                document.getElementById(tab.dataset.tab).classList.add("active");
+            };
+        });
+
+        // ===== 이미지 업로드 =====
         const pasteZone = document.getElementById("pasteZone");
         const hiddenFileInput = document.getElementById("hiddenFileInput");
         const previewImg = document.getElementById("previewImg");
         const pastePrompt = document.getElementById("pastePrompt");
 
         if (pasteZone && hiddenFileInput) {
-            pasteZone.onclick = function(e) {
-                hiddenFileInput.click();
-            };
-            hiddenFileInput.onchange = function(e) {
+            pasteZone.onclick = () => hiddenFileInput.click();
+            hiddenFileInput.onchange = (e) => {
                 if (e.target.files.length > 0) handleImage(e.target.files[0]);
             };
         }
@@ -153,12 +286,13 @@
                 if (previewImg && pastePrompt) {
                     previewImg.src = e.target.result;
                     previewImg.style.display = "block";
-                    pastePrompt.innerHTML = `✅ <b>시험지 기출 이미지 로드 완료!</b>`;
+                    pastePrompt.innerHTML = "<b>시험지 기출 이미지 로드 완료</b>";
                 }
             };
             reader.readAsDataURL(file);
         }
 
+        // ===== 설정 모달 =====
         const btnSettings = document.getElementById('btnSettings');
         const configModal = document.getElementById('configModal');
         const btnCloseModal = document.getElementById('btnCloseModal');
@@ -177,9 +311,9 @@
                     GEMINI_API_KEY = keyInput;
                     if(btnSettings) {
                         btnSettings.classList.add("connected");
-                        btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                        btnSettings.textContent = "설정 (연결됨)";
                     }
-                    alert("API 키가 파이어베이스 저장소에 성공적으로 기록되었습니다.");
+                    alert("API 키가 저장되었습니다.");
                     configModal.style.display = 'none';
                 } catch (e) {
                     alert("저장 오류: " + e.message);
@@ -187,6 +321,7 @@
             };
         }
 
+        // ===== 로그인 / 로그아웃 =====
         const btnLogin = document.getElementById('btnLogin');
         const btnLogout = document.getElementById('btnLogout');
         if(btnLogin) btnLogin.onclick = () => signInWithPopup(auth, provider).catch(e => alert("로그인 실패: " + e.message));
@@ -203,13 +338,11 @@
                 }
                 if(btnLogin) btnLogin.style.display = "none";
                 if(btnLogout) btnLogout.style.display = "inline-block";
-                if(userInfo) userInfo.textContent = `👤 ${user.displayName || '강사'} 로그인됨`;
+                if(userInfo) userInfo.textContent = user.email;
 
-                // 🔽 관리자 계정일 때만 설정 버튼 표시
                 const isAdmin = (email === ADMIN_EMAIL.toLowerCase());
                 if(btnSettings) btnSettings.style.display = isAdmin ? "inline-block" : "none";
 
-                // 관리자만 저장된 API 키를 불러옴
                 if (isAdmin) {
                     try {
                         const docRef = await getDoc(doc(db, "secure_config", "gemini"));
@@ -218,7 +351,7 @@
                             if(apiKeyInput) apiKeyInput.value = GEMINI_API_KEY;
                             if(btnSettings) {
                                 btnSettings.classList.add("connected");
-                                btnSettings.textContent = "⚙️ 설정 (연결됨)";
+                                btnSettings.textContent = "설정 (연결됨)";
                             }
                         }
                     } catch (err) {
@@ -228,11 +361,12 @@
             } else {
                 if(btnLogin) btnLogin.style.display = "inline-block";
                 if(btnLogout) btnLogout.style.display = "none";
-                if(btnSettings) btnSettings.style.display = "none"; // 로그아웃 시 설정 버튼 숨김
-                if(userInfo) userInfo.textContent = "🔒 구글 로그인 연동이 필요합니다.";
+                if(btnSettings) btnSettings.style.display = "none";
+                if(userInfo) userInfo.textContent = "로그인 필요";
             }
         });
 
+        // ===== 분석 / 생성 =====
         if(document.getElementById("btnAnalyze")) document.getElementById("btnAnalyze").onclick = analyzeImage;
         if(document.getElementById("btnGenerate")) document.getElementById("btnGenerate").onclick = generateQuestions;
 
@@ -292,7 +426,7 @@
                     body: JSON.stringify({
                         contents: [{
                             parts: [{
-                                text: `다음 [출제 지침]의 유형과 감점 조건을 바탕으로, [대상 지문]을 활용한 고등학교 내신 주관식 서답형 문제 ${count}개를 출제해줘. 각 문제에는 '⚠️ [조건]', '✅ [정답]', '📝 [채점 기준]'을 한국어로 명확히 포함해라.\n\n[출제 지침]\n${guideline}\n\n[대상 지문]\n${rangeText}`
+                                text: `다음 [출제 지침]의 유형과 감점 조건을 바탕으로, [대상 지문]을 활용한 고등학교 내신 주관식 서답형 문제 ${count}개를 출제해줘. 각 문제에는 '[조건]', '[정답]', '[채점 기준]'을 한국어로 명확히 포함해라.\n\n[출제 지침]\n${guideline}\n\n[대상 지문]\n${rangeText}`
                             }]
                         }]
                     })
