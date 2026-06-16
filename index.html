@@ -235,7 +235,7 @@
 
             document.getElementById("analyzeLoading").style.display = "block";
             try {
-                // [매핑 스케일] 콘솔에서 성공 판정을 내린 상하단 일렬 매칭 구문 고정
+                // 🟢 호환성이 검증된 호출 명칭 구조 고정
                 const genAI = new window.GoogleGenAI.GoogleGenAI({ apiKey: apiKey });
                 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
