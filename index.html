@@ -26,7 +26,7 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; }
         .modal-box { background: white; padding: 25px; border-radius: 8px; max-width: 450px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
     </style>
-    <script src="https://unpkg.com/@google/generative-ai@0.1.1/dist/index.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/index.umd.js/0.1.1/index.umd.min.js"></script>
 </head>
 <body>
 
@@ -235,9 +235,8 @@
 
             document.getElementById("analyzeLoading").style.display = "block";
             try {
-                // [정밀 매핑 1] 상단 UMD 스크립트와 완전히 동일하게 매칭한 이름표(window.GoogleGenAI) 선언
+                // [매핑 스케일] 콘솔에서 성공 판정을 내린 상하단 일렬 매칭 구문 고정
                 const genAI = new window.GoogleGenAI.GoogleGenAI({ apiKey: apiKey });
-                // [정밀 매핑 2] 최신 경로 규칙 준수 (models/ 제거 완료)
                 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
                 const result = await model.generateContent([
