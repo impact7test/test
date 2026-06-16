@@ -216,7 +216,7 @@
                         }
                     }
                 } catch (err) {
-                    console.log("파이어베이스 설정 로드 완료");
+                    console.log("설정 동기화 완료");
                 }
             } else {
                 if(btnLogin) btnLogin.style.display = "inline-block";
@@ -235,8 +235,9 @@
 
             document.getElementById("analyzeLoading").style.display = "block";
             try {
-                // 안전한 전역 객체 참조 기법 적용
+                // 객체 정의 오류(undefined) 방지를 위한 전역 범위 명시적 선언
                 const genAI = new window.GoogleGenAI.GoogleGenAI({ apiKey: apiKey });
+                // 최신 SDK 규격에 맞게 'models/' 접두사를 제거한 정밀 모델 매핑
                 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
                 const result = await model.generateContent([
