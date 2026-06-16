@@ -268,7 +268,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+           import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 
         const firebaseConfig = {
             apiKey: "AIzaSyAvGq_MefnWW91lVO94LcnkT1klLY_XtLs",
@@ -437,37 +438,67 @@
                 const text = document.getElementById("guidelineText").value.trim();
                 if (!text) return alert("저장할 분석된 출제 지침이 없습니다.");
                 if (!auth.currentUser) return alert("로그인 후 저장할 수 있습니다.");
+
+                // 저장할 이름(파일명) 입력받기
+                const name = prompt("저장할 지침의 이름을 입력하세요. (예: 2학년 중간고사 1과)");
+                if (name === null) return;          // 취소 누름
+                const fileName = name.trim();
+                if (!fileName) return alert("이름을 입력해야 저장됩니다.");
+
                 try {
-                    // JSON 형태로 저장 (내용 + 저장 시각 + 저장한 사람)
-                    await setDoc(doc(db, "shared_guidelines", "latest"), {
+                    // 입력한 이름을 문서 ID로 사용해 저장
+                    await setDoc(doc(db, "shared_guidelines", fileName), {
+                        name: fileName,
                         guideline: text,
                         savedBy: auth.currentUser.email,
                         savedAt: new Date().toISOString()
                     });
-                    alert("출제 지침이 저장되었습니다. 다른 강사들도 불러올 수 있습니다.");
+                    alert(`"${fileName}" 이름으로 저장되었습니다.`);
                 } catch (e) {
                     alert("저장 오류: " + e.message);
                 }
             };
         }
 
+
         if (btnLoadGuide) {
             btnLoadGuide.onclick = async () => {
                 try {
-                    const snap = await getDoc(doc(db, "shared_guidelines", "latest"));
-                    if (snap.exists() && snap.data().guideline) {
-                        const d = snap.data();
-                        document.getElementById("guidelineText").value = d.guideline;
-                        const when = d.savedAt ? new Date(d.savedAt).toLocaleString("ko-KR") : "";
-                        alert(`불러오기 완료\n저장한 사람: ${d.savedBy || "알 수 없음"}\n저장 시각: ${when}`);
-                    } else {
-                        alert("저장된 출제 지침이 없습니다.");
+                    // 저장된 지침 목록 전체 읽어오기
+                    const querySnap = await getDocs(collection(db, "shared_guidelines"));
+                    const list = [];
+                    querySnap.forEach(d => list.push(d.data()));
+
+                    if (list.length === 0) {
+                        return alert("저장된 출제 지침이 없습니다.");
                     }
+
+                    // 최신순 정렬
+                    list.sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || ""));
+
+                    // 번호를 붙여 목록 보여주기
+                    let menu = "불러올 지침의 번호를 입력하세요.\n\n";
+                    list.forEach((item, i) => {
+                        const when = item.savedAt ? new Date(item.savedAt).toLocaleString("ko-KR") : "";
+                        menu += `${i + 1}. ${item.name || "(이름 없음)"}  [${item.savedBy || "?"} / ${when}]\n`;
+                    });
+
+                    const pick = prompt(menu);
+                    if (pick === null) return;       // 취소
+                    const idx = parseInt(pick, 10) - 1;
+                    if (isNaN(idx) || idx < 0 || idx >= list.length) {
+                        return alert("올바른 번호를 입력해 주세요.");
+                    }
+
+                    const chosen = list[idx];
+                    document.getElementById("guidelineText").value = chosen.guideline || "";
+                    alert(`"${chosen.name}" 지침을 불러왔습니다.`);
                 } catch (e) {
                     alert("불러오기 오류: " + e.message);
                 }
             };
         }
+
 
 
         async function analyzeImage() {
