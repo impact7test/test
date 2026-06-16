@@ -378,6 +378,8 @@
 
         let GEMINI_API_KEY = "";
         let imageList = [];   // 여러 장 저장: { base64, mimeType }
+        let rangeImageList = [];   // 2단계 파일 저장: { base64, mimeType, name }
+
 
 
         // ===== 탭 전환 =====
@@ -491,8 +493,13 @@ function handleRangeImage(file) {
             rangeImageList.forEach((img, idx) => {
                 const wrap = document.createElement("div");
                 wrap.className = "thumb-wrap";
-                wrap.innerHTML = `<img src="data:${img.mimeType};base64,${img.base64}" alt="지문">
-                                  <button class="thumb-del" title="삭제">×</button>`;
+                if (img.mimeType === "application/pdf") {
+                    wrap.innerHTML = `<div style="height:120px; width:100px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:6px; font-size:12px; padding:6px; word-break:break-all; text-align:center;">📄<br>${img.name || "PDF"}</div>
+                                      <button class="thumb-del" title="삭제">×</button>`;
+                } else {
+                    wrap.innerHTML = `<img src="data:${img.mimeType};base64,${img.base64}" alt="지문">
+                                      <button class="thumb-del" title="삭제">×</button>`;
+                }
                 wrap.querySelector(".thumb-del").onclick = (ev) => {
                     ev.stopPropagation();
                     rangeImageList.splice(idx, 1);
@@ -502,10 +509,11 @@ function handleRangeImage(file) {
             });
             if (rangePastePrompt) {
                 rangePastePrompt.innerHTML = rangeImageList.length > 0
-                    ? `<b>이미지 ${rangeImageList.length}장 로드 완료</b> (계속 추가 가능)`
-                    : "여기를 클릭하여 신규 시험범위 사진을 업로드하거나 이미지를 붙여넣으세요. (여러 장 가능)";
+                    ? `<b>파일 ${rangeImageList.length}개 로드 완료</b> (계속 추가 가능)`
+                    : "여기를 클릭하여 신규 시험범위 파일을 업로드하거나 이미지를 붙여넣으세요. (여러 장 가능)";
             }
         }
+
 
         // 첨부한 지문 읽어오기 (이미지 → 텍스트)
         const btnReadRange = document.getElementById("btnReadRange");
