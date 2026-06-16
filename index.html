@@ -131,6 +131,15 @@
         .paste-zone:hover { border-color: var(--primary); background: #f0f7f3; }
 
         .preview-img { max-width: 100%; max-height: 250px; display: none; margin: 14px auto 0; border-radius: 6px; border: 1px solid var(--border); }
+        .thumb-wrap { position: relative; }
+        .thumb-wrap img { height: 120px; border-radius: 6px; border: 1px solid var(--border); }
+        .thumb-del {
+            position: absolute; top: -8px; right: -8px;
+            background: #d64545; color: #fff; border: none;
+            border-radius: 50%; width: 22px; height: 22px;
+            cursor: pointer; font-size: 13px; line-height: 1;
+        }
+
         .loading { display: none; color: var(--primary); font-weight: 600; margin-top: 10px; background: #eef6f1; padding: 10px; border-radius: 6px; }
 
         /* 화면 중앙 진행 오버레이 */
@@ -219,11 +228,12 @@
 
 
                 <div id="pasteZone" class="paste-zone">
-                    <span id="pastePrompt">여기를 클릭하여 시험지 사진을 업로드하거나 이미지를 붙여넣으세요.</span>
-                    <img id="previewImg" class="preview-img" alt="시험지 미리보기">
+                    <span id="pastePrompt">여기를 클릭하여 시험지 사진을 업로드하거나 이미지를 붙여넣으세요. (여러 장 가능)</span>
+                    <div id="previewArea" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:14px;"></div>
                 </div>
 
-                <input type="file" id="hiddenFileInput" accept="image/*" style="display: none;">
+                <input type="file" id="hiddenFileInput" accept="image/*" multiple style="display: none;">
+
 
                 <button id="btnAnalyze" class="btn btn-primary btn-full">기출 패턴 분석 시작</button>
                 <div id="analyzeLoading" class="loading">기출문제를 분석하고 있습니다...</div>
@@ -340,8 +350,8 @@
 
 
         let GEMINI_API_KEY = "";
-        let targetBase64 = "";
-        let targetMimeType = "image/png";
+        let imageList = [];   // 여러 장 저장: { base64, mimeType }
+
 
         // ===== 탭 전환 =====
         document.querySelectorAll(".tab").forEach(tab => {
@@ -359,10 +369,13 @@
         const previewImg = document.getElementById("previewImg");
         const pastePrompt = document.getElementById("pastePrompt");
 
+        const previewArea = document.getElementById("previewArea");
+
         if (pasteZone && hiddenFileInput) {
             pasteZone.onclick = () => hiddenFileInput.click();
             hiddenFileInput.onchange = (e) => {
-                if (e.target.files.length > 0) handleImage(e.target.files[0]);
+                for (let f of e.target.files) handleImage(f);
+                e.target.value = "";   // 같은 파일 다시 선택 가능하도록 초기화
             };
         }
 
@@ -371,24 +384,41 @@
             for (let item of items) {
                 if (item.kind === 'file' && item.type.startsWith('image/')) {
                     handleImage(item.getAsFile());
-                    break;
                 }
             }
         });
 
         function handleImage(file) {
-            targetMimeType = file.type;
             const reader = new FileReader();
             reader.onload = (e) => {
-                targetBase64 = e.target.result.split(',')[1];
-                if (previewImg && pastePrompt) {
-                    previewImg.src = e.target.result;
-                    previewImg.style.display = "block";
-                    pastePrompt.innerHTML = "<b>시험지 기출 이미지 로드 완료</b>";
-                }
+                const base64 = e.target.result.split(',')[1];
+                imageList.push({ base64: base64, mimeType: file.type });
+                renderThumbs();
             };
             reader.readAsDataURL(file);
         }
+
+        function renderThumbs() {
+            previewArea.innerHTML = "";
+            imageList.forEach((img, idx) => {
+                const wrap = document.createElement("div");
+                wrap.className = "thumb-wrap";
+                wrap.innerHTML = `<img src="data:${img.mimeType};base64,${img.base64}" alt="시험지">
+                                  <button class="thumb-del" title="삭제">×</button>`;
+                wrap.querySelector(".thumb-del").onclick = (ev) => {
+                    ev.stopPropagation();
+                    imageList.splice(idx, 1);
+                    renderThumbs();
+                };
+                previewArea.appendChild(wrap);
+            });
+            if (pastePrompt) {
+                pastePrompt.innerHTML = imageList.length > 0
+                    ? `<b>이미지 ${imageList.length}장 로드 완료</b> (계속 추가 가능)`
+                    : "여기를 클릭하여 시험지 사진을 업로드하거나 이미지를 붙여넣으세요. (여러 장 가능)";
+            }
+        }
+
 
         // ===== 설정 모달 =====
         const btnSettings = document.getElementById('btnSettings');
@@ -570,23 +600,26 @@
         async function analyzeImage() {
             const apiKey = apiKeyInput.value.trim() || GEMINI_API_KEY;
             if (!apiKey) return alert("설정 메뉴에서 Gemini API 키를 확인해 주세요.");
-            if (!targetBase64) return alert("이미지를 먼저 추가해 주세요.");
+            if (imageList.length === 0) return alert("이미지를 먼저 추가해 주세요.");
+
+            // 보낼 parts 구성: 안내문 + 모든 이미지
+            const parts = [
+                { text: "대한민국 고등학교 영어 교사로서, 첨부된 시험지 이미지들(여러 장일 수 있음) 속 주관식 서답형 문항들의 출제 경향과 조건을 종합하여 한국어 가이드라인으로 정리해줘." }
+            ];
+            imageList.forEach(img => {
+                parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 } });
+            });
 
             showProgress("기출문제를 분석하고 있습니다...");
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, {
-
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: "대한민국 고등학교 영어 교사로서, 첨부된 시험지 이미지 속 주관식 서답형 문항들의 출제 경향과 조건을 분석하여 한국어 가이드라인으로 정리해줘." },
-                                { inlineData: { mimeType: targetMimeType, data: targetBase64 } }
-                            ]
-                        }]
+                        contents: [{ parts: parts }]
                     })
                 });
+
 
                 const data = await response.json();
                 if (!response.ok) {
