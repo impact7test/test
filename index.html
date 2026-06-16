@@ -111,17 +111,23 @@
         textarea { resize: vertical; }
         input[type="number"] { max-width: 120px; }
 
-        .paste-zone {
-            border: 2px dashed #b6c4bc;
-            padding: 36px 20px;
-            border-radius: 8px;
-            text-align: center;
-            background: #fafcfb;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 12px;
-            color: var(--muted);
-        }
+.paste-zone {
+    border: 2px dashed #b6c4bc;
+    padding: 80px 20px;
+    border-radius: 8px;
+    text-align: center;
+    background: #fafcfb;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+    color: var(--muted);
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
         .paste-zone:hover { border-color: var(--primary); background: #f0f7f3; }
 
         .preview-img { max-width: 100%; max-height: 250px; display: none; margin: 14px auto 0; border-radius: 6px; border: 1px solid var(--border); }
@@ -174,8 +180,9 @@
                 <button id="btnAnalyze" class="btn btn-primary btn-full">기출 패턴 분석 시작</button>
                 <div id="analyzeLoading" class="loading">기출문제를 분석하고 있습니다...</div>
 
-                <label for="guidelineText">분석된 출제 지침</label>
-                <textarea id="guidelineText" rows="6" placeholder="기출문제 이미지 판독 데이터가 여기에 기록됩니다."></textarea>
+<label for="guidelineText">분석된 출제 지침</label>
+<textarea id="guidelineText" rows="16" placeholder="기출문제 이미지 판독 데이터가 여기에 기록됩니다."></textarea>
+
             </div>
         </div>
 
