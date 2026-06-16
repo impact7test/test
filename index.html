@@ -240,7 +240,7 @@
                     </div>
                 </div>
 
-                <textarea id="guidelineText" rows="28" placeholder="기출문제 이미지 판독 데이터가 여기에 기록됩니다." style="font-size: 16px adornment;"></textarea>
+                <textarea id="guidelineText" rows="28" placeholder="기출문제 이미지 판독 데이터가 여기에 기록됩니다." style="font-size: 16px;"></textarea>
             </div>
         </div>
 
@@ -497,7 +497,7 @@
                     }
                 } catch (error) {
                     alert("읽기 오류: " + error.message);
-                } finaly {
+                } finally {
                     hideProgress();
                 }
             };
@@ -538,7 +538,7 @@
         if(btnLogin) btnLogin.onclick = () => signInWithPopup(auth, provider).catch(e => alert("로그인 실패: " + e.message));
         if(btnLogout) btnLogout.onclick = () => signOut(auth).catch(e => alert("로그아웃 실패: " + e.message));
 
-        // [추가] 드롭다운 목록 새로고침 독립 함수
+        // 드롭다운 목록 새로고침 독립 함수
         async function refreshGuideSelect() {
             const loadGuideSelect = document.getElementById("loadGuideSelect");
             if (!loadGuideSelect) return;
@@ -600,7 +600,11 @@
             } else {
                 if(btnLogin) btnLogin.style.display = "inline-block";
                 if(btnLogout) btnLogout.style.display = "none";
-                if(btnSettings) btnSettings.style.display = "none";
+                if(btnSettings) {
+                    btnSettings.style.display = "none";
+                    btnSettings.classList.remove("connected");
+                    btnSettings.textContent = "설정";
+                }
                 if(userInfo) userInfo.textContent = "로그인 필요";
                 if(loadGuideSelect) loadGuideSelect.innerHTML = '<option value="">지침 불러오기</option>';
             }
@@ -734,11 +738,9 @@ ${rangeText}
             };
         }
 
-        // ===== [수정 완료] 드롭다운 이벤트 제어 (풀림 버그 완벽 제거) =====
+        // ===== 드롭다운 이벤트 제어 =====
         const loadGuideSelect = document.getElementById("loadGuideSelect");
         if (loadGuideSelect) {
-            loadGuideSelect.onmousedown = null; // 오작동 유발하던 마우스 다운 기능 원천 삭제
-
             loadGuideSelect.onchange = () => {
                 const v = loadGuideSelect.value;
                 if (v === "") return;
@@ -755,7 +757,7 @@ ${rangeText}
             };
         }
 
-        // ===== [수정 완료] 지침 즉시 삭제 버튼 (번호 안 물어봄) =====
+        // ===== 지침 즉시 삭제 버튼 =====
         const btnDeleteGuide = document.getElementById("btnDeleteGuide");
         if (btnDeleteGuide) {
             btnDeleteGuide.onclick = async () => {
@@ -774,10 +776,8 @@ ${rangeText}
                     if (confirm(`"${target.name || "(이름 없음)"}" 지침을 정말 삭제하시겠습니까?`)) {
                         showProgress("지침을 삭제하는 중입니다...");
                         
-                        // 데이터베이스(Firestore)에서 즉시 삭제
                         await deleteDoc(doc(db, "shared_guidelines", docId));
                         
-                        // 화면 입력 필드 및 상태 깔끔하게 복원
                         document.getElementById("guidelineText").value = "";
                         const cg = document.getElementById("currentGuideName");
                         if(cg) {
@@ -787,7 +787,6 @@ ${rangeText}
                         loadGuideSelect.value = "";
                         syncGuidelineView();
                         
-                        // 실시간으로 드롭다운 내부 리스트 갱신
                         await refreshGuideSelect();
                         
                         hideProgress();
