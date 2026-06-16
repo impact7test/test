@@ -717,35 +717,44 @@ ${rangeText}
             };
         }
 
-        // ===== 지침 삭제 =====
+// ===== 지침 삭제 =====
         const btnDeleteGuide = document.getElementById("btnDeleteGuide");
         if (btnDeleteGuide) {
             btnDeleteGuide.onclick = async () => {
+                // 드롭다운에서 현재 선택된 옵션의 index 값 가져오기
+                const selectedValue = loadGuideSelect.value;
+                
+                if (selectedValue === "") {
+                    return alert("먼저 '지침 불러오기' 드롭다운에서 삭제할 지침을 선택해 주세요.");
+                }
+
                 try {
-                    const querySnap = await getDocs(collection(db, "shared_guidelines"));
-                    const docs = [];
-                    querySnap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+                    // 캐시되어 있는 지침 목록에서 선택한 데이터 추출
+                    const target = guideCache[parseInt(selectedValue, 10)];
+                    if (!target) return alert("선택한 지침을 찾을 수 없습니다.");
 
-                    if (docs.length === 0) return alert("저장된 지침이 없습니다.");
-                    docs.sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || ""));
-
-                    let menu = "삭제할 지침의 번호를 입력하세요.\n\n";
-                    docs.forEach((d, i) => {
-                        menu += `${i + 1}. ${d.name || "(이름 없음)"}\n`;
-                    });
-                    const pick = prompt(menu);
-                    if (pick === null) return;
-                    const idx = parseInt(pick, 10) - 1;
-                    if (isNaN(idx) || idx < 0 || idx >= docs.length) {
-                        return alert("올바른 번호를 입력해 주세요.");
-                    }
-
-                    const target = docs[idx];
-                    if (confirm(`"${target.name || "(이름 없음)"}" 지침을 삭제할까요?`)) {
-                        await deleteDoc(doc(db, "shared_guidelines", target.id));
+                    if (confirm(`"${target.name || "(이름 없음)"}" 지침을 바로 삭제할까요?`)) {
+                        showProgress("지침을 삭제하는 중입니다...");
+                        
+                        // 데이터베이스에서 삭제
+                        await deleteDoc(doc(db, "shared_guidelines", target.name));
+                        
+                        // 삭제 후 화면 UI 및 캐시 초기화
+                        document.getElementById("guidelineText").value = "";
+                        const cg = document.getElementById("currentGuideName");
+                        cg.textContent = "";
+                        cg.style.display = "none";
+                        loadGuideSelect.value = "";
+                        syncGuidelineView();
+                        
+                        // 드롭다운 목록 새로 갱신하기 위해 마우스 다운 이벤트 강제 트리거
+                        if(loadGuideSelect.onmousedown) await loadGuideSelect.onmousedown();
+                        
+                        hideProgress();
                         alert("삭제되었습니다.");
                     }
                 } catch (e) {
+                    hideProgress();
                     alert("삭제 오류: " + e.message);
                 }
             };
