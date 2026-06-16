@@ -278,7 +278,8 @@
                     <span id="rangePastePrompt">여기를 클릭하여 신규 시험범위 사진을 업로드하거나 이미지를 붙여넣으세요. (여러 장 가능)</span>
                     <div id="rangePreviewArea" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:14px;"></div>
                 </div>
-                <input type="file" id="rangeFileInput" accept="image/*" multiple style="display: none;">
+            <input type="file" id="rangeFileInput" accept="image/*,application/pdf" multiple style="display: none;">
+
 
                 <button id="btnReadRange" class="btn btn-primary btn-full">첨부한 지문 읽어오기</button>
 
@@ -473,15 +474,15 @@
             };
         }
 
-        function handleRangeImage(file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const base64 = e.target.result.split(',')[1];
-                rangeImageList.push({ base64: base64, mimeType: file.type });
-                renderRangeThumbs();
-            };
-            reader.readAsDataURL(file);
-        }
+function handleRangeImage(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const base64 = e.target.result.split(",")[1];
+        rangeImageList.push({ base64: base64, mimeType: file.type, name: file.name });
+        renderRangeThumbs();
+    };
+    reader.readAsDataURL(file);
+}
 
         function renderRangeThumbs() {
             rangePreviewArea.innerHTML = "";
