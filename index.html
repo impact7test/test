@@ -239,7 +239,10 @@
                 <div id="analyzeLoading" class="loading">기출문제를 분석하고 있습니다...</div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin:14px 0 6px;">
-                    <label for="guidelineText" style="color: var(--primary); font-size: 16px; font-weight: 700; margin:0;">분석된 출제 지침</label>
+                                        <label for="guidelineText" style="color: var(--primary); font-size: 16px; font-weight: 700; margin:0;">분석된 출제 지침
+                        <span id="currentGuideName" style="font-size:13px; font-weight:500; color:var(--muted); margin-left:8px;"></span>
+                    </label>
+
                     <div style="display:flex; gap:8px;">
                         <button id="btnLoadGuide" class="btn btn-outline" style="padding:6px 12px;">지침 불러오기</button>
                         <button id="btnSaveGuide" class="btn btn-primary" style="padding:6px 12px;">지침 저장</button>
@@ -520,7 +523,9 @@
                         savedBy: auth.currentUser.email,
                         savedAt: new Date().toISOString()
                     });
+                                        document.getElementById("currentGuideName").textContent = "📄 " + fileName;
                     alert(`"${fileName}" 이름으로 저장되었습니다.`);
+
                 } catch (e) {
                     alert("저장 오류: " + e.message);
                 }
@@ -567,9 +572,11 @@
                         // 항목(왼쪽 정보)을 클릭하면 불러오기
                         div.querySelector(".g-info").onclick = () => {
                             document.getElementById("guidelineText").value = item.guideline || "";
+                            document.getElementById("currentGuideName").textContent = "📄 " + (item.name || "(이름 없음)");
                             guideListModal.style.display = "none";
                             alert(`"${item.name || "(이름 없음)"}" 지침을 불러왔습니다.`);
                         };
+
 
                         // 점 3개를 누르면 삭제 확인
                         div.querySelector(".guide-dots").onclick = async (e) => {
