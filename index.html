@@ -246,6 +246,8 @@
                         <select id="loadGuideSelect" class="btn btn-outline" style="padding:6px 12px; cursor:pointer;">
                             <option value="">지침 불러오기</option>
                         </select>
+                        <button id="btnDeleteGuide" class="btn btn-gray" style="padding:6px 12px;">삭제</button>
+
 
                         <button id="btnSaveGuide" class="btn btn-primary" style="padding:6px 12px;">지침 저장</button>
                     </div>
@@ -568,6 +570,7 @@
             };
 
             // 항목을 고르면 바로 불러오기
+            // 항목을 고르면 바로 불러오기
             loadGuideSelect.onchange = () => {
                 const v = loadGuideSelect.value;
                 if (v === "") return;
@@ -580,6 +583,43 @@
                 loadGuideSelect.value = "";   // 드롭다운 표시는 다시 기본으로
             };
         }
+
+        // ===== 지침 삭제 =====
+        const btnDeleteGuide = document.getElementById("btnDeleteGuide");
+        if (btnDeleteGuide) {
+            btnDeleteGuide.onclick = async () => {
+                try {
+                    // 최신 목록 불러오기
+                    const querySnap = await getDocs(collection(db, "shared_guidelines"));
+                    const docs = [];
+                    querySnap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+
+                    if (docs.length === 0) return alert("저장된 지침이 없습니다.");
+                    docs.sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || ""));
+
+                    // 삭제할 지침 번호로 선택
+                    let menu = "삭제할 지침의 번호를 입력하세요.\n\n";
+                    docs.forEach((d, i) => {
+                        menu += `${i + 1}. ${d.name || "(이름 없음)"}\n`;
+                    });
+                    const pick = prompt(menu);
+                    if (pick === null) return;
+                    const idx = parseInt(pick, 10) - 1;
+                    if (isNaN(idx) || idx < 0 || idx >= docs.length) {
+                        return alert("올바른 번호를 입력해 주세요.");
+                    }
+
+                    const target = docs[idx];
+                    if (confirm(`"${target.name || "(이름 없음)"}" 지침을 삭제할까요?`)) {
+                        await deleteDoc(doc(db, "shared_guidelines", target.id));
+                        alert("삭제되었습니다.");
+                    }
+                } catch (e) {
+                    alert("삭제 오류: " + e.message);
+                }
+            };
+        }
+
 
 
 
