@@ -190,13 +190,8 @@
         <!-- 탭 1: 기출유형 분석 -->
         <div id="tab1" class="panel active">
 <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin-bottom:0;">기출유형 분석</h3>
-        <div style="display:flex; gap:8px;">
-            <button id="btnLoadGuide" class="btn btn-outline" style="padding:6px 12px;">지침 불러오기</button>
-            <button id="btnSaveGuide" class="btn btn-primary" style="padding:6px 12px;">지침 저장</button>
-        </div>
-    </div>
+    <h3>기출유형 분석</h3>
+
     <p class="desc">아래 영역을 클릭하여 파일을 고르거나, Ctrl + V로 이미지를 붙여넣어 주세요.</p>
 
 
@@ -210,7 +205,14 @@
                 <button id="btnAnalyze" class="btn btn-primary btn-full">기출 패턴 분석 시작</button>
                 <div id="analyzeLoading" class="loading">기출문제를 분석하고 있습니다...</div>
 
-<label for="guidelineText" style="color: var(--primary); font-size: 16px; font-weight: 700;">분석된 출제 지침</label>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin:14px 0 6px;">
+                    <label for="guidelineText" style="color: var(--primary); font-size: 16px; font-weight: 700; margin:0;">분석된 출제 지침</label>
+                    <div style="display:flex; gap:8px;">
+                        <button id="btnLoadGuide" class="btn btn-outline" style="padding:6px 12px;">지침 불러오기</button>
+                        <button id="btnSaveGuide" class="btn btn-primary" style="padding:6px 12px;">지침 저장</button>
+                    </div>
+                </div>
+
 
 <textarea id="guidelineText" rows="16" placeholder="기출문제 이미지 판독 데이터가 여기에 기록됩니다." style="font-size: 16px;"></textarea>
 
