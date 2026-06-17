@@ -289,7 +289,8 @@
 
 
                 <button id="btnGenerate" class="btn btn-primary btn-full">주관식 서답형 문제 생성 시작</button>
-                <div id="generateLoading" class="loading">고품질 서답형 문제를 생성 중입니다...</div>
+                <div id="generateLoading" class="loading">임팩트7영어학원에서 정말 열심히 고품질의 서답형 문제를 생성 하고 있습니다.</div>
+
 
                               <div style="position:relative;">
                     <div id="outputResult" class="result-box" style="margin-top:14px;">문제 출제가 완료되면 정답 및 채점 기준이 출력됩니다.</div>
@@ -709,8 +710,8 @@
 
             const guidelineText = document.getElementById("guidelineTextView").value.trim();
             const qCount = document.getElementById("qCount").value || 3;
+            showProgress("임팩트7영어학원에서 정말 열심히 고품질의 서답형 문제를 생성 하고 있습니다.");
 
-            showProgress("고품질 서답형 문제를 생성 중입니다...");
 
             const promptText = `
 [출제 지침]
