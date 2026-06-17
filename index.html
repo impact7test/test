@@ -643,12 +643,16 @@
                         alert("API 오류 (" + response.status + "): " + JSON.stringify(data.error || data));
                         return;
                     }
-                    const resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                                       let resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
                     if (resultText) {
+                        resultText = resultText
+                            .replace(/대한민국 고등학교 영어 교사로서 첨부된 시험지 이미지에 있는 주관식 서답형 문항들을 분석했습니다\.?/g, "임팩트7영어학원 서답형 문항 분석 결과 입니다.")
+                            .replace(/\*\*/g, "");
                         document.getElementById("guidelineText").value = resultText;
                         syncGuidelineView();
                         alert("기출문제 분석이 완료되었습니다!");
                     }
+
                 } catch (e) {
                     alert("분석 오류: " + e.message);
                 } finally {
