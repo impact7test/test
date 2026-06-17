@@ -288,7 +288,11 @@
                 <button id="btnGenerate" class="btn btn-primary btn-full">주관식 서답형 문제 생성 시작</button>
                 <div id="generateLoading" class="loading">고품질 서답형 문제를 생성 중입니다...</div>
 
-                <div id="outputResult" class="result-box" style="margin-top:14px;">문제 출제가 완료되면 정답 및 채점 기준이 출력됩니다.</div>
+                              <div style="position:relative;">
+                    <div id="outputResult" class="result-box" style="margin-top:14px;">문제 출제가 완료되면 정답 및 채점 기준이 출력됩니다.</div>
+                    <button id="btnCopyResult" style="position:absolute; right:10px; bottom:10px; background:rgba(255,255,255,0.6); border:1px solid var(--border); color:var(--primary); border-radius:6px; padding:5px 12px; font-size:12px; font-weight:600; cursor:pointer;">복사</button>
+                </div>
+
 
             </div>
         </div>
@@ -672,7 +676,26 @@
         }
 
         // ===== 버튼 이벤트 바인딩 및 함수 로직 구현 =====
-        if(document.getElementById("btnGenerate")) document.getElementById("btnGenerate").onclick = generateQuestions;
+               if(document.getElementById("btnGenerate")) document.getElementById("btnGenerate").onclick = generateQuestions;
+
+        // 결과 복사 버튼
+        const btnCopyResult = document.getElementById("btnCopyResult");
+        if (btnCopyResult) {
+            btnCopyResult.onclick = async () => {
+                const text = document.getElementById("outputResult").textContent;
+                if (!text || text.includes("문제 출제가 완료되면")) {
+                    return alert("복사할 출제 결과가 없습니다.");
+                }
+                try {
+                    await navigator.clipboard.writeText(text);
+                    btnCopyResult.textContent = "복사됨!";
+                    setTimeout(() => { btnCopyResult.textContent = "복사"; }, 1500);
+                } catch (e) {
+                    alert("복사 실패: " + e.message);
+                }
+            };
+        }
+
 
         async function generateQuestions() {
             const apiKey = apiKeyInput.value.trim() || GEMINI_API_KEY;
