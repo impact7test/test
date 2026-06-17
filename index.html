@@ -211,7 +211,8 @@
         <div id="tab1" class="panel active">
 
             <div class="card">
-                <h3>기출유형 분석</h3>
+                               <h3>1. 기출유형 분석</h3>
+
                 <p class="desc">아래 영역을 클릭하여 파일을 고르거나, Ctrl + V로 이미지를 붙여넣어 주세요.</p>
 
                 <div id="pasteZone" class="paste-zone">
@@ -225,7 +226,8 @@
                 <div id="analyzeLoading" class="loading">기출문제를 분석하고 있습니다...</div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin:14px 0 6px;">
-                    <label for="guidelineText" style="color: var(--primary); font-size: 16px; font-weight: 700; margin:0;">분석된 출제 지침</label>
+                                        <label for="guidelineText" style="color: var(--primary); font-size: 16px; font-weight: 700; margin:0;">2. 분석된 출제 지침</label>
+
                     <span id="currentGuideName" style="display:none;"></span>
                     <div style="display:flex; gap:8px;">
 
@@ -243,8 +245,9 @@
         </div>
 
         <div id="tab2" class="panel active" style="margin-top:20px;">
-                 <div class="card" style="border-radius:8px;">
-                <h3>서답형 문제 생성</h3>
+              <div class="card" style="border-radius:8px;">
+                <h3>3. 변형 문제용 지문 입력</h3>
+
                 <textarea id="guidelineTextView" readonly style="display:none;"></textarea>
 
                 <p class="desc">변형 문제를 출제할 신규 지문 이미지를 첨부하세요. (여러 장 가능) 첨부하면 지문이 자동으로 읽혀 아래에 표시됩니다.</p>
@@ -261,9 +264,10 @@
                 <label for="rangeText" style="margin-top:16px;">읽어온 시험범위 지문 (필요시 수정 가능)</label>
                 <textarea id="rangeText" rows="10" placeholder="첨부한 이미지에서 읽어온 지문이 여기에 표시됩니다."></textarea>
 
-                <hr style="margin:24px 0; border: 1px solid var(--border);">
+                       <hr style="margin:24px 0; border: 1px solid var(--border);">
 
-                <h3>서답형 변형 문제 생성</h3>
+                <h3>4. 서답형 변형 문제 생성</h3>
+
                 <label for="qCount">생성할 문항 수</label>
                 <input type="number" id="qCount" min="1" max="10" value="3">
 
