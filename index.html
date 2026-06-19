@@ -308,6 +308,20 @@
         <div id="progressText" class="progress-text">기출문제를 분석하고 있습니다...</div>
     </div>
 
+    <div id="busyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10001; justify-content:center; align-items:center;">
+        <div style="background:#fff; border-radius:16px; max-width:420px; width:90%; padding:32px 28px; text-align:center; box-shadow:0 14px 40px rgba(0,0,0,0.25); border-top:6px solid var(--primary);">
+            <div style="font-size:48px; margin-bottom:10px;">🌳</div>
+            <h3 style="color:var(--primary); margin:0 0 14px; font-size:18px;">지금은 오류가 아닙니다</h3>
+            <p style="color:var(--text); font-size:14px; line-height:1.7; margin:0 0 22px;">
+                순간적인 API 사용량 증가로 인한 정체이니,<br>
+                걱정하지 마시고 다시 한번 해보세요.<br>
+                <b style="color:var(--primary);">임팩트7영어학원은 오늘도 열심히 하고 있습니다.</b>
+            </p>
+            <button id="btnCloseBusy" class="btn btn-primary" style="padding:10px 28px; font-size:14px;">다시 해보기</button>
+        </div>
+    </div>
+
+
     <div id="configModal" class="modal-overlay">
         <div class="modal-box">
             <h4>Gemini API 키 설정</h4>
@@ -349,9 +363,19 @@
             document.getElementById("progressText").textContent = msg || "처리 중입니다...";
             ov.classList.add("show");
         }
-        function hideProgress() {
+         function hideProgress() {
             document.getElementById("progressOverlay").classList.remove("show");
         }
+
+        function showBusyModal() {
+            const m = document.getElementById("busyModal");
+            if (m) m.style.display = "flex";
+        }
+        document.addEventListener("DOMContentLoaded", () => {
+            const b = document.getElementById("btnCloseBusy");
+            if (b) b.onclick = () => { document.getElementById("busyModal").style.display = "none"; };
+        });
+
 
         let GEMINI_API_KEY = "";
         let imageList = [];   // 여러 장 저장: { base64, mimeType }
@@ -509,7 +533,8 @@
                     const data = await response.json();
                     if (!response.ok) {
                         if (response.status === 503) {
-                            alert("지금은 오류가 아닙니다.\n순간적인 API 사용량 증가로 인한 정체 이니,\n걱정하지 마시고 다시 한번 해보세요.\n임팩트7영어학원은 오늘도 열심히 하고 있습니다.");
+                                                        showBusyModal();
+
                         } else {
                             alert("API 오류 (" + response.status + "): " + JSON.stringify(data.error || data));
                         }
