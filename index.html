@@ -817,7 +817,8 @@ ${rangeText}
                 
                     if (!response.ok) {
                         if (response.status === 503) {
-                            alert("지금은 오류가 납니다.\n순간적인 API 사용량 증가로 인한 정체 이니,\n걱정하지 마시고 다시 한번 해보세요.\n임팩트7영어학원은 오늘도 열심히 하고 있습니다.");
+                                                    showBusyModal();
+
                         } else {
                             alert("API 오류 (" + response.status + "): " + JSON.stringify(data.error || data));
                         }
