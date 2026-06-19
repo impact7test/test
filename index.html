@@ -321,6 +321,15 @@
         </div>
     </div>
 
+    <div id="alertModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:10001; justify-content:center; align-items:center;">
+        <div style="background:#fff; border-radius:16px; max-width:400px; width:90%; padding:30px 28px; text-align:center; box-shadow:0 14px 40px rgba(0,0,0,0.25); border-top:6px solid var(--primary);">
+            <div id="alertIcon" style="font-size:44px; margin-bottom:10px;">✅</div>
+            <p id="alertMsg" style="color:var(--text); font-size:15px; line-height:1.6; margin:0 0 22px; white-space:pre-line;"></p>
+            <button id="btnCloseAlert" class="btn btn-primary" style="padding:10px 28px; font-size:14px;">확인</button>
+        </div>
+    </div>
+
+
 
     <div id="configModal" class="modal-overlay">
         <div class="modal-box">
@@ -374,7 +383,21 @@
         document.addEventListener("DOMContentLoaded", () => {
             const b = document.getElementById("btnCloseBusy");
             if (b) b.onclick = () => { document.getElementById("busyModal").style.display = "none"; };
+            const a = document.getElementById("btnCloseAlert");
+            if (a) a.onclick = () => { document.getElementById("alertModal").style.display = "none"; };
         });
+
+        // 예쁜 알림 팝업 (아이콘은 success/info/warn 중 선택)
+        function showAlert(message, type) {
+            const icons = { success: "✅", info: "🌳", warn: "⚠️" };
+            const iconEl = document.getElementById("alertIcon");
+            const msgEl = document.getElementById("alertMsg");
+            if (iconEl) iconEl.textContent = icons[type] || icons.info;
+            if (msgEl) msgEl.textContent = message;
+            const m = document.getElementById("alertModal");
+            if (m) m.style.display = "flex";
+        }
+
 
 
         let GEMINI_API_KEY = "";
@@ -544,7 +567,8 @@
                     if (resultText) {
                         document.getElementById("rangeText").value = resultText;
 
-                        alert("지문을 읽어왔습니다. 내용을 확인하고 필요하면 수정해 주세요.");
+                                                showAlert("지문을 읽어왔습니다.\n내용을 확인하고 필요하면 수정해 주세요.", "success");
+
                     } else {
                         alert("읽기 실패: " + JSON.stringify(data.error || data));
                     }
@@ -703,7 +727,8 @@
                             .replace(/\*\*/g, "");
                         document.getElementById("guidelineText").value = resultText;
                         syncGuidelineView();
-                        alert("기출문제 분석이 완료되었습니다!");
+                                                showAlert("기출문제 분석이\n완료되었습니다!", "success");
+
                     }
 
                 } catch (e) {
@@ -846,7 +871,7 @@ ${rangeText}
                     await refreshGuideSelect(); // 저장 완료 후 즉시 새로고침
 
                     hideProgress();
-                    alert(`"${fileName}" 이름으로 저장되었습니다.`);
+                                        showAlert(`"${fileName}" 이름으로\n저장되었습니다.`, "success");
                 } catch (e) {
                     hideProgress();
                     alert("저장 오류: " + e.message);
@@ -906,7 +931,8 @@ ${rangeText}
                         await refreshGuideSelect();
                         
                         hideProgress();
-                        alert("성공적으로 삭제되었습니다.");
+                                                showAlert("성공적으로\n삭제되었습니다.", "success");
+
                     }
                 } catch (e) {
                     hideProgress();
