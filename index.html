@@ -209,11 +209,9 @@
         .upload-icon {
             width: 56px; height: 56px;
             margin: 0 auto 12px;
-            border-radius: 50%;
-            background: var(--primary);
-            color: #fff; font-size: 26px;
             display: flex; align-items: center; justify-content: center;
         }
+
         .upload-title { font-size: 15px; font-weight: 600; color: var(--text); }
         .upload-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
         .upload-count { font-size: 13px; color: var(--primary); font-weight: 700; margin-top: 8px; }
@@ -269,7 +267,14 @@
 
 
                 <div id="pasteZone" class="upload-zone">
-                    <div class="upload-icon">⬆️</div>
+                    <div class="upload-icon">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1f7a4d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 13v8"></path>
+                            <path d="m8 17 4-4 4 4"></path>
+                            <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path>
+                        </svg>
+                    </div>
+
                     <div class="upload-title">파일을 드래그하여 업로드하거나</div>
                     <button type="button" class="btn btn-primary" style="margin:12px 0 4px; padding:8px 20px;">파일 선택</button>
                     <div class="upload-hint">지원 형식: JPG, PNG (또는 Ctrl + V 로 붙여넣기)</div>
