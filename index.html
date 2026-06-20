@@ -554,13 +554,15 @@
                 </div>
                 <p class="desc" style="margin-top:8px;">서답형 문제를 생성한 계정의 기록입니다. (최신순)</p>
                 <table style="width:100%; border-collapse:collapse; font-size:13px;">
-                    <thead>
-                        <tr style="background:#f4f6f5; text-align:left;">
-                            <th style="padding:10px; border-bottom:1px solid var(--border);">일자</th>
-                            <th style="padding:10px; border-bottom:1px solid var(--border);">시간</th>
-                            <th style="padding:10px; border-bottom:1px solid var(--border);">생성 문항 수</th>
-                            <th style="padding:10px; border-bottom:1px solid var(--border);">계정 이메일</th>
-                        </tr>
+<thead>
+    <tr style="background:#f4f6f5; text-align:left;">
+        <th style="padding:10px; border-bottom:1px solid var(--border);">일자</th>
+        <th style="padding:10px; border-bottom:1px solid var(--border);">시간</th>
+        <th style="padding:10px; border-bottom:1px solid var(--border);">난이도</th>
+        <th style="padding:10px; border-bottom:1px solid var(--border);">생성 문항 수</th>
+        <th style="padding:10px; border-bottom:1px solid var(--border);">계정 이메일</th>
+    </tr>
+
                     </thead>
                     <tbody id="logTableBody">
                         <tr><td colspan="4" style="padding:16px; text-align:center; color:var(--muted);">기록을 불러오는 중입니다...</td></tr>
@@ -876,37 +878,39 @@
         if(btnRefreshLogs) btnRefreshLogs.onclick = () => loadGenerationLogs();
 
         // 생성 기록 불러와서 표로 그리기
-        async function loadGenerationLogs() {
-            const body = document.getElementById('logTableBody');
-            if (!body) return;
-            body.innerHTML = `<tr><td colspan="4" style="padding:16px; text-align:center; color:var(--muted);">기록을 불러오는 중입니다...</td></tr>`;
-            try {
-                const snap = await getDocs(collection(db, "generation_logs"));
-                const logs = [];
-                snap.forEach(d => logs.push(d.data()));
-                logs.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+async function loadGenerationLogs() {
+    const body = document.getElementById('logTableBody');
+    if (!body) return;
+    body.innerHTML = `<tr><td colspan="5" style="padding:16px; text-align:center; color:var(--muted);">기록을 불러오는 중입니다...</td></tr>`;
+    try {
+        const snap = await getDocs(collection(db, "generation_logs"));
+        const logs = [];
+        snap.forEach(d => logs.push(d.data()));
+        logs.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 
-                if (logs.length === 0) {
-                    body.innerHTML = `<tr><td colspan="4" style="padding:16px; text-align:center; color:var(--muted);">아직 생성 기록이 없습니다.</td></tr>`;
-                    return;
-                }
-                body.innerHTML = "";
-                logs.forEach(log => {
-                    const dt = log.createdAt ? new Date(log.createdAt) : null;
-                    const dateStr = dt ? dt.toLocaleDateString("ko-KR") : "-";
-                    const timeStr = dt ? dt.toLocaleTimeString("ko-KR") : "-";
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-                        <td style="padding:10px; border-bottom:1px solid var(--border);">${dateStr}</td>
-                        <td style="padding:10px; border-bottom:1px solid var(--border);">${timeStr}</td>
-                        <td style="padding:10px; border-bottom:1px solid var(--border);">${log.qCount || "-"}</td>
-                        <td style="padding:10px; border-bottom:1px solid var(--border);">${log.email || "-"}</td>`;
-                    body.appendChild(tr);
-                });
-            } catch (e) {
-                body.innerHTML = `<tr><td colspan="4" style="padding:16px; text-align:center; color:#d64545;">기록 불러오기 오류: ${e.message}</td></tr>`;
-            }
+        if (logs.length === 0) {
+            body.innerHTML = `<tr><td colspan="5" style="padding:16px; text-align:center; color:var(--muted);">아직 생성 기록이 없습니다.</td></tr>`;
+            return;
         }
+        body.innerHTML = "";
+        logs.forEach(log => {
+            const dt = log.createdAt ? new Date(log.createdAt) : null;
+            const dateStr = dt ? dt.toLocaleDateString("ko-KR") : "-";
+            const timeStr = dt ? dt.toLocaleTimeString("ko-KR") : "-";
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td style="padding:10px; border-bottom:1px solid var(--border);">${dateStr}</td>
+                <td style="padding:10px; border-bottom:1px solid var(--border);">${timeStr}</td>
+                <td style="padding:10px; border-bottom:1px solid var(--border);">${log.difficulty || "-"}</td>
+                <td style="padding:10px; border-bottom:1px solid var(--border);">${log.qCount || "-"}</td>
+                <td style="padding:10px; border-bottom:1px solid var(--border);">${log.email || "-"}</td>`;
+            body.appendChild(tr);
+        });
+    } catch (e) {
+        body.innerHTML = `<tr><td colspan="5" style="padding:16px; text-align:center; color:#d64545;">기록 불러오기 오류: ${e.message}</td></tr>`;
+    }
+}
+
 
         if(btnSaveKey) {
             btnSaveKey.onclick = async () => {
