@@ -283,7 +283,7 @@
 
                 <div id="previewArea" class="file-list"></div>
 
-                <button type="button" id="btnAddFile" class="btn btn-outline" style="padding:8px 16px; margin-bottom:4px;">📎 파일 추가</button>
+                
 
                 <input type="file" id="hiddenFileInput" accept="image/*" multiple style="display: none;">
 
@@ -502,8 +502,7 @@
                 e.target.value = "";   // 같은 파일 다시 선택 가능하도록 초기화
             };
         }
-        const btnAddFile = document.getElementById("btnAddFile");
-        if (btnAddFile) btnAddFile.onclick = () => hiddenFileInput.click();
+
 
 
         document.addEventListener("paste", (e) => {
