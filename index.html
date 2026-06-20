@@ -597,7 +597,8 @@
         const provider = new GoogleAuthProvider();
         const db = getFirestore(app);
 
-        const GEMINI_MODEL = "gemini-2.5-flash";
+    const GEMINI_MODEL = "gemini-3-flash-preview";
+
         const ADMIN_EMAIL = "roh@impact7.kr";
 
         // 진행 오버레이 제어
@@ -1139,7 +1140,8 @@ async function callGemini(apiKey, promptText) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             contents: [{ parts: [{ text: promptText }] }],
-            generationConfig: { temperature: 0.2 }
+      generationConfig: { temperature: 1.0 }
+
         })
     });
     const data = await response.json();
