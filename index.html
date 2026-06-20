@@ -194,6 +194,42 @@
             border-radius: 6px; line-height: 1;
         }
         .guide-dots:hover { background: #e6ebe8; }
+                /* 새 업로드 영역 디자인 */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            background: #fafcfb;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            margin-bottom: 12px;
+        }
+        .upload-zone:hover { border-color: var(--primary); background: #f0f7f3; }
+        .upload-icon {
+            width: 56px; height: 56px;
+            margin: 0 auto 12px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff; font-size: 26px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .upload-title { font-size: 15px; font-weight: 600; color: var(--text); }
+        .upload-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+        .upload-count { font-size: 13px; color: var(--primary); font-weight: 700; margin-top: 8px; }
+        .file-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .file-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px; background: #fff;
+        }
+        .file-item .file-thumb { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border); }
+        .file-item .file-ico { font-size: 22px; }
+        .file-item .file-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-item .file-check { color: var(--primary); font-size: 15px; }
+        .file-item .file-del { cursor: pointer; color: #d64545; background: none; border: none; font-size: 16px; line-height: 1; }
+
     </style>
 </head>
 <body>
@@ -220,13 +256,20 @@
                 <p style="color:#d64545; font-size:13px; margin:-8px 0 16px; font-weight:600;">API 오류 (503) 은 구글 API 에 접속이 몰려서 생기는 오류로 다시 분석을 하시면 됩니다.</p>
 
 
-                             <div id="pasteZone" class="paste-zone" style="background:#fafcfb;">
-
-                    <span id="pastePrompt">여기를 클릭하여 시험지 사진을 업로드하거나 이미지를 붙여넣으세요. (여러 장 가능)</span>
-                    <div id="previewArea" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:14px;"></div>
+                <div id="pasteZone" class="upload-zone">
+                    <div class="upload-icon">⬆️</div>
+                    <div class="upload-title">파일을 드래그하여 업로드하거나</div>
+                    <button type="button" class="btn btn-primary" style="margin:12px 0 4px; padding:8px 20px;">파일 선택</button>
+                    <div class="upload-hint">지원 형식: JPG, PNG (또는 Ctrl + V 로 붙여넣기)</div>
+                    <div id="pastePrompt" class="upload-count"></div>
                 </div>
 
+                <div id="previewArea" class="file-list"></div>
+
+                <button type="button" id="btnAddFile" class="btn btn-outline" style="padding:8px 16px; margin-bottom:4px;">📎 파일 추가</button>
+
                 <input type="file" id="hiddenFileInput" accept="image/*" multiple style="display: none;">
+
 
                 <button id="btnAnalyze" class="btn btn-primary btn-full">기출 패턴 분석 시작</button>
                 <div id="analyzeLoading" class="loading">기출문제를 분석하고 있습니다...</div>
@@ -442,6 +485,9 @@
                 e.target.value = "";   // 같은 파일 다시 선택 가능하도록 초기화
             };
         }
+        const btnAddFile = document.getElementById("btnAddFile");
+        if (btnAddFile) btnAddFile.onclick = () => hiddenFileInput.click();
+
 
         document.addEventListener("paste", (e) => {
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
@@ -465,23 +511,27 @@
         function renderThumbs() {
             previewArea.innerHTML = "";
             imageList.forEach((img, idx) => {
-                const wrap = document.createElement("div");
-                wrap.className = "thumb-wrap";
-                wrap.innerHTML = `<img src="data:${img.mimeType};base64,${img.base64}" alt="시험지">
-                                  <button class="thumb-del" title="삭제">×</button>`;
-                wrap.querySelector(".thumb-del").onclick = (ev) => {
+                const item = document.createElement("div");
+                item.className = "file-item";
+                item.innerHTML = `
+                    <img class="file-thumb" src="data:${img.mimeType};base64,${img.base64}" alt="첨부 이미지">
+                    <span class="file-name">시험지 이미지 ${idx + 1}</span>
+                    <span class="file-check">✔</span>
+                    <button class="file-del" title="삭제">×</button>`;
+                item.querySelector(".file-del").onclick = (ev) => {
                     ev.stopPropagation();
                     imageList.splice(idx, 1);
                     renderThumbs();
                 };
-                previewArea.appendChild(wrap);
+                previewArea.appendChild(item);
             });
             if (pastePrompt) {
-                pastePrompt.innerHTML = imageList.length > 0
-                    ? `<b>이미지 ${imageList.length}장 로드 완료</b> (계속 추가 가능)`
-                    : "여기를 클릭하여 시험지 사진을 업로드하거나 이미지를 붙여넣으세요. (여러 장 가능)";
+                pastePrompt.textContent = imageList.length > 0
+                    ? `이미지 ${imageList.length}장 첨부됨 (계속 추가 가능)`
+                    : "";
             }
         }
+
 
         // ===== 신규 시험범위 이미지 첨부 =====
         const rangePasteZone = document.getElementById("rangePasteZone");
