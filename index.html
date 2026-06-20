@@ -406,17 +406,19 @@
                              <textarea id="rangeText" rows="16" placeholder="첨부한 이미지에서 읽어온 지문이 여기에 표시됩니다."></textarea>
 
 
-                                                             <h3 style="margin-top:32px;"><span class="num-badge">4</span>서답형 변형 문제 생성</h3>
-
-
-
-
-                                                         <div style="display:flex; align-items:center; gap:12px; justify-content:flex-end; margin-top:-44px; margin-bottom:14px;">
-
-
-
-                    <label for="qCount" style="margin:0; white-space:nowrap;">생성할 문항 수</label>
-                    <input type="number" id="qCount" min="1" max="10" value="3" style="margin:0; width:70px;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-top:32px;">
+                    <div>
+                        <h3 style="margin:0;"><span class="num-badge">4</span>서답형 변형 문제 생성</h3>
+                        <p class="desc" style="margin:8px 0 0;">분석 결과를 바탕으로 서답형 변형 문제를 생성합니다.</p>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0; margin-top:4px;">
+                        <label for="qCount" style="margin:0; white-space:nowrap;">생성할 문항 수</label>
+                        <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+                            <button type="button" id="qMinus" style="border:none; background:#f4f6f5; width:34px; height:34px; font-size:18px; cursor:pointer; color:var(--text);">−</button>
+                            <input type="number" id="qCount" min="1" max="10" value="3" style="width:46px; height:34px; text-align:center; border:none; border-left:1px solid var(--border); border-right:1px solid var(--border); border-radius:0; padding:0; font-size:15px;">
+                            <button type="button" id="qPlus" style="border:none; background:#f4f6f5; width:34px; height:34px; font-size:18px; cursor:pointer; color:var(--text);">+</button>
+                        </div>
+                    </div>
                 </div>
 
 
@@ -935,6 +937,22 @@
         // ===== 버튼 이벤트 바인딩 및 함수 로직 구현 =====
                if(document.getElementById("btnGenerate")) document.getElementById("btnGenerate").onclick = generateQuestions;
 
+        // 문항 수 스테퍼 (- / +)
+        const qCountInput = document.getElementById("qCount");
+        const qMinusBtn = document.getElementById("qMinus");
+        const qPlusBtn = document.getElementById("qPlus");
+        if (qMinusBtn && qPlusBtn && qCountInput) {
+            qMinusBtn.onclick = () => {
+                let v = parseInt(qCountInput.value, 10) || 1;
+                if (v > 1) qCountInput.value = v - 1;
+            };
+            qPlusBtn.onclick = () => {
+                let v = parseInt(qCountInput.value, 10) || 1;
+                if (v < 10) qCountInput.value = v + 1;
+            };
+        }
+
+        
         // 결과 복사 버튼
         const btnCopyResult = document.getElementById("btnCopyResult");
         if (btnCopyResult) {
