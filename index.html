@@ -222,11 +222,20 @@
             border: 1px solid var(--border);
             border-radius: 8px; background: #fff;
         }
-        .file-item .file-thumb { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border); }
-        .file-item .file-ico { font-size: 22px; }
-        .file-item .file-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .file-item .file-check { color: var(--primary); font-size: 15px; }
-        .file-item .file-del { cursor: pointer; color: #d64545; background: none; border: none; font-size: 16px; line-height: 1; }
+        .file-item .file-thumb { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; }
+        .file-item .file-ico { width: 30px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 26px; color: var(--muted); flex-shrink: 0; }
+        .file-item .file-meta { flex: 1; overflow: hidden; }
+        .file-item .file-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-item .file-size { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .file-item .file-check {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: var(--primary); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; flex-shrink: 0;
+        }
+        .file-item .file-del { cursor: pointer; color: var(--muted); background: none; border: none; font-size: 17px; line-height: 1; flex-shrink: 0; padding: 4px; }
+        .file-item .file-del:hover { color: #d64545; }
+
         /* 제목 앞 번호 동그라미 */
         .num-badge {
             display: inline-flex;
@@ -292,7 +301,8 @@
 
                 
 
-                <input type="file" id="hiddenFileInput" accept="image/*" multiple style="display: none;">
+                                <input type="file" id="hiddenFileInput" accept="image/*,application/pdf" multiple style="display: none;">
+
 
 
                 <button id="btnAnalyze" class="btn btn-primary btn-full">기출 패턴 분석 시작</button>
@@ -524,26 +534,43 @@
             }
         });
 
+        // 파일 크기를 읽기 좋게 변환
+        function formatSize(bytes) {
+            if (!bytes && bytes !== 0) return "";
+            if (bytes < 1024) return bytes + "B";
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + "KB";
+            return (bytes / (1024 * 1024)).toFixed(1) + "MB";
+        }
+
         function handleImage(file) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const base64 = e.target.result.split(',')[1];
-                imageList.push({ base64: base64, mimeType: file.type });
+                imageList.push({ base64: base64, mimeType: file.type, name: file.name, size: file.size });
                 renderThumbs();
             };
             reader.readAsDataURL(file);
         }
+
 
         function renderThumbs() {
             previewArea.innerHTML = "";
             imageList.forEach((img, idx) => {
                 const item = document.createElement("div");
                 item.className = "file-item";
+                const isPdf = img.mimeType === "application/pdf";
+                const thumb = isPdf
+                    ? `<span class="file-ico">📄</span>`
+                    : `<img class="file-thumb" src="data:${img.mimeType};base64,${img.base64}" alt="첨부 이미지">`;
+                const displayName = img.name || (isPdf ? "PDF 파일" : `시험지 이미지 ${idx + 1}`);
                 item.innerHTML = `
-                    <img class="file-thumb" src="data:${img.mimeType};base64,${img.base64}" alt="첨부 이미지">
-                    <span class="file-name">시험지 이미지 ${idx + 1}</span>
+                    ${thumb}
+                    <div class="file-meta">
+                        <div class="file-name">${displayName}</div>
+                        <div class="file-size">${formatSize(img.size)}</div>
+                    </div>
                     <span class="file-check">✔</span>
-                    <button class="file-del" title="삭제">×</button>`;
+                    <button class="file-del" title="삭제">🗑</button>`;
                 item.querySelector(".file-del").onclick = (ev) => {
                     ev.stopPropagation();
                     imageList.splice(idx, 1);
@@ -553,10 +580,11 @@
             });
             if (pastePrompt) {
                 pastePrompt.textContent = imageList.length > 0
-                    ? `이미지 ${imageList.length}장 첨부됨 (계속 추가 가능)`
+                    ? `파일 ${imageList.length}개 첨부됨 (계속 추가 가능)`
                     : "";
             }
         }
+
 
 
         // ===== 신규 시험범위 이미지 첨부 =====
