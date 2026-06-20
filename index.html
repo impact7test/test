@@ -845,9 +845,12 @@
                         }
                         return;
                     }
-                    const resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (resultText) {
-                        document.getElementById("rangeText").value = resultText;
+                    let resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+if (resultText) {
+    // 문단 사이 빈 줄은 살리고, 한 문단 안의 문장 줄바꿈만 이어 붙이기
+    resultText = resultText.replace(/([^\n])\n([^\n])/g, "$1 $2");
+    document.getElementById("rangeText").value = resultText;
+
 
                                                 showAlert("지문을 읽어왔습니다.\n내용을 확인하고 필요하면 수정해 주세요.", "success");
 
